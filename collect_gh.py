@@ -18,6 +18,7 @@ import time
 import requests
 
 from common import (
+    RateLimited,
     env,
     get_json,
     load_config,
@@ -60,9 +61,9 @@ def check_token(cfg: dict) -> int:
     params = {"q": build_query(gh["repos"][0], gh["min_reactions"], gh["state"]), "per_page": 1}
     try:
         data, resp = get_json(session, gh["endpoint"], params=params, headers=headers(), max_tries=1)
-    except requests.HTTPError as e:
+    except (requests.HTTPError, RateLimited) as e:
         print(f"FAILED: {e}")
-        print("If the status is 401, the token is wrong or expired. Check .env.")
+        print("401 means the token is wrong or expired. 403 means it lacks access or you are rate limited. Check .env.")
         return 1
     auth = "token accepted" if env("GITHUB_TOKEN") else "no token (unauthenticated)"
     print(f"OK: {auth}")
@@ -75,6 +76,7 @@ def check_token(cfg: dict) -> int:
 def search_repo(session: requests.Session, cfg: dict, repo: str) -> list[dict]:
     gh = cfg["github"]
     items: list[dict] = []
+    data: dict = {}
     q = build_query(repo, gh["min_reactions"], gh["state"])
     for page in range(1, gh["max_pages"] + 1):
         params = {

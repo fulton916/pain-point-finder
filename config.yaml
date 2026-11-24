@@ -25,7 +25,8 @@ paths:
 
 hacker_news:
   endpoint: https://hn.algolia.com/api/v1/search
-  min_points: 50
+  # Keep stories with MORE than this many points (points>50, as in the brief).
+  more_than_points: 50
   # Only stories (not comments). Ask HN and Show HN posts count as stories.
   tags: story
   hits_per_page: 100

@@ -1,6 +1,7 @@
 """Collect Hacker News stories about the topic from the Algolia HN Search API.
 
 No API key needed. Docs: https://hn.algolia.com/api
+Keeps stories with more than `more_than_points` points (default 50) in the last `months_back` months.
 Writes data/raw/hackernews.jsonl in the common record format.
 
 Run:  python collect_hn.py
@@ -51,7 +52,7 @@ def search(session: requests.Session, cfg: dict, query: str, since_ts: int) -> l
         params = {
             "query": query,
             "tags": hn["tags"],
-            "numericFilters": f"points>={hn['min_points']},created_at_i>={since_ts}",
+            "numericFilters": f"points>{hn['more_than_points']},created_at_i>={since_ts}",
             "hitsPerPage": hn["hits_per_page"],
             "page": page,
         }

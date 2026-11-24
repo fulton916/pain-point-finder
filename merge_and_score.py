@@ -158,8 +158,10 @@ def _most_similar(title: str, groups: list[Group], threshold: float, min_len: in
         # "every 15 minutes" and "every 30 minutes" are different problems: numbers must match.
         if _DIGITS.findall(other) != title_numbers:
             continue
-        # Cheap length check before the expensive comparison.
-        if abs(len(other) - len(title)) / max(len(other), len(title)) > (1 - threshold):
+        # Cheap length check before the expensive comparison. SequenceMatcher's ratio is
+        # 2*matches/(len_a+len_b), so two strings can only reach `threshold` when their
+        # relative length difference is at most 2*(1-threshold)/(2-threshold).
+        if abs(len(other) - len(title)) / max(len(other), len(title)) > 2 * (1 - threshold) / (2 - threshold):
             continue
         sm = SequenceMatcher(None, title, other)
         if sm.quick_ratio() < threshold:
@@ -261,8 +263,16 @@ def score_group(g: Group, scoring: dict, as_of: datetime) -> dict:
     }
 
 
+def validate_scoring(scoring: dict) -> None:
+    """Catch config typos early with a message that names the bad value."""
+    for source, cap in (scoring.get("label_caps") or {}).items():
+        if cap not in LABELS:
+            raise SystemExit(f"config.yaml scoring.label_caps.{source} is {cap!r}; must be one of {LABELS}")
+
+
 def rank(records: list[dict], scoring: dict, as_of: datetime | None = None) -> tuple[list[dict], list[dict]]:
     """Pure function: records in, (ranked rows, merge log) out. Used by main() and the tests."""
+    validate_scoring(scoring)
     records = [dict(r) for r in records]  # don't mutate the caller's data
     if as_of is None:
         as_of = max((parse_date(r.get("fetched_at")) for r in records), default=None) or datetime.now(timezone.utc)

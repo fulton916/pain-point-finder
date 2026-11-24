@@ -133,15 +133,17 @@ def get_json(
     if headers:
         hdrs.update(headers)
     delay = 2.0
-    last_err: Exception | None = None
+    last_err: str = "no attempts made"
     for attempt in range(1, max_tries + 1):
+        last_try = attempt == max_tries
         try:
             resp = session.get(url, params=params, headers=hdrs, timeout=timeout)
         except requests.RequestException as e:
-            last_err = e
-            log.warning("request failed (%s), retry %d/%d in %.0fs", e, attempt, max_tries, delay)
-            time.sleep(delay)
-            delay = min(delay * 2, 60)
+            last_err = str(e)
+            if not last_try:
+                log.warning("request failed (%s), retry %d/%d in %.0fs", e, attempt, max_tries, delay)
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
             continue
 
         if resp.status_code in (403, 429):
@@ -158,9 +160,11 @@ def get_json(
             continue
 
         if resp.status_code >= 500:
-            log.warning("HTTP %s, retry %d/%d in %.0fs", resp.status_code, attempt, max_tries, delay)
-            time.sleep(delay)
-            delay = min(delay * 2, 60)
+            last_err = f"HTTP {resp.status_code}"
+            if not last_try:
+                log.warning("HTTP %s, retry %d/%d in %.0fs", resp.status_code, attempt, max_tries, delay)
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
             continue
 
         resp.raise_for_status()

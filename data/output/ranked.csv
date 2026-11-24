@@ -69,7 +69,7 @@ rank,title,best_url,source_count,sources,top_normalized_score,raw_score,comments
 68,🔜  Update: Local Development Server Deprecation Notice & Announcement,https://github.com/forcedotcom/salesforcedx-vscode/issues/5501,1,github,0.5869,7,11,2024-08-28,closed,Anecdotal,0.174
 69,Add ability to retrieve a Custom Field via the Org Browser,https://github.com/forcedotcom/salesforcedx-vscode/issues/2711,1,github,0.7136,9,2,2024-08-29,closed,Anecdotal,0.1734
 70,Check if connection is still valid,https://github.com/jsforce/jsforce/issues/699,1,github,0.7887,11,2,2024-06-28,closed,Moderate,0.1708
-71,Mocking/Stubbing,https://github.com/jsforce/jsforce/issues/26,1,github,0.6573,8,9,2024-05-20,closed,Anecdotal,0.1613
+71,Mocking/Stubbing,https://github.com/jsforce/jsforce/issues/26,1,github,0.6573,8,9,2024-05-20,closed,Anecdotal,0.1612
 72,More granular metadata instead of complex XMLs ,https://github.com/forcedotcom/salesforcedx-vscode/issues/4650,1,github,0.9296,19,2,2024-02-27,closed,Moderate,0.161
 73,ECONNRESET ,https://github.com/jsforce/jsforce/issues/285,1,github,0.5869,7,9,2024-07-15,closed,Anecdotal,0.1604
 74,[data-export] Support for multiple SOQL/SOSL in tabs,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/132,1,github,0.2582,5,6,2025-10-17,closed,Anecdotal,0.1591
@@ -86,7 +86,7 @@ rank,title,best_url,source_count,sources,top_normalized_score,raw_score,comments
 85,Announcement: new major version of @oclif/plugin-plugins,https://github.com/forcedotcom/cli/issues/2691,1,github,0.5869,7,7,2024-05-01,closed,Anecdotal,0.1408
 86,Support workspaces,https://github.com/forcedotcom/salesforcedx-vscode/issues/970,1,github,0.6573,8,6,2024-02-24,closed,Anecdotal,0.1366
 87,[data-export]: Support for formatting SOQL Queries,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/359,1,github,0.5869,7,1,2024-08-21,open,Anecdotal,0.1365
-88,[data-export] Copy filtered records only,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/93,1,github,0.2582,5,7,2025-05-14,closed,Anecdotal,0.131
+88,[data-export] Copy filtered records only,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/93,1,github,0.2582,5,7,2025-05-14,closed,Anecdotal,0.1309
 89,Salesforce Extensions processes running even if VSCode is closed,https://github.com/forcedotcom/salesforcedx-vscode/issues/4591,1,github,0.6573,8,4,2024-02-21,closed,Anecdotal,0.1295
 90,SFDX Push error when metadata is moved,https://github.com/forcedotcom/cli/issues/2035,1,github,0.5869,7,9,2024-01-31,closed,Anecdotal,0.1295
 91,Request package vulnerable to SSRF,https://github.com/jsforce/jsforce/issues/1312,1,github,0.939,22,2,2023-10-02,closed,Moderate,0.1281
@@ -126,7 +126,7 @@ rank,title,best_url,source_count,sources,top_normalized_score,raw_score,comments
 125,Allow wildcards in force:source:retrieve/deploy,https://github.com/forcedotcom/cli/issues/182,1,github,0.7887,11,1,2023-08-01,closed,Moderate,0.0931
 126,Can someone explain what pollTimeout and pollInterval do together?,https://github.com/jsforce/jsforce/issues/901,1,github,0.2582,5,4,2024-10-18,closed,Anecdotal,0.0924
 127,Please Use Beta Packaging Commands,https://github.com/forcedotcom/cli/issues/1721,1,github,0.5869,7,11,2023-02-03,closed,Anecdotal,0.0917
-128,Improve handling of self-referencing lookups by force:data:tree commands,https://github.com/forcedotcom/cli/issues/248,1,github,0.5869,7,4,2023-08-01,closed,Anecdotal,0.0912
+128,Improve handling of self-referencing lookups by force:data:tree commands,https://github.com/forcedotcom/cli/issues/248,1,github,0.5869,7,4,2023-08-01,closed,Anecdotal,0.0911
 129,Cannot read property 'fspath' of undefined --> when using a Keyboard shortcut to deploy Salesforce file,https://github.com/forcedotcom/salesforcedx-vscode/issues/662,1,github,0.2582,5,58,2021-11-24,closed,Anecdotal,0.0896
 130,Org Browser,https://github.com/forcedotcom/salesforcedx-vscode/issues/862,1,github,0.7136,9,23,2022-01-31,closed,Anecdotal,0.089
 131,HTTP request timeout,https://github.com/jsforce/jsforce/issues/618,1,github,0.4178,6,1,2024-05-22,closed,Anecdotal,0.0874
@@ -157,7 +157,7 @@ rank,title,best_url,source_count,sources,top_normalized_score,raw_score,comments
 156,"""Retrieve Source From Org"" doesn't update originating source file",https://github.com/forcedotcom/cli/issues/97,1,github,0.7418,10,23,2020-08-06,closed,Anecdotal,0.073
 157,SFDX CLI: Error: Cannot find module 'lodash/core',https://github.com/forcedotcom/cli/issues/464,1,github,0.8592,14,22,2020-07-08,closed,Moderate,0.073
 158,Ver 2.0 : Moving to the Modern Architecture (ES2015+),https://github.com/jsforce/jsforce/issues/593,1,github,0.2582,5,2,2024-07-23,closed,Anecdotal,0.073
-159,Apex Extension not loading before it can be activated (high CPU usage),https://github.com/forcedotcom/salesforcedx-vscode/issues/2803,1,github,0.2582,5,25,2021-10-22,closed,Anecdotal,0.0728
+159,Apex Extension not loading before it can be activated (high CPU usage),https://github.com/forcedotcom/salesforcedx-vscode/issues/2803,1,github,0.2582,5,25,2021-10-22,closed,Anecdotal,0.0727
 160,"`force:project:create`command returns ""ERR_ASSERTION: A name parameter is required to create a storage""",https://github.com/forcedotcom/salesforcedx-vscode/issues/253,1,github,0.4178,6,16,2022-01-26,closed,Anecdotal,0.0714
 161,Open scratch org in any region/pod/datacenter,https://github.com/forcedotcom/cli/issues/679,1,github,0.4178,6,4,2023-06-22,closed,Anecdotal,0.0711
 162,Announcement: Rollback of 50.13.3 CLI 7.84.2,https://github.com/forcedotcom/cli/issues/811,1,github,0.8967,17,14,2021-02-22,closed,Moderate,0.0708
