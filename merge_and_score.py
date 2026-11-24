@@ -145,11 +145,18 @@ def dedupe(records: list[dict], scoring: dict, merge_log: list[dict]) -> list[Gr
     return kept
 
 
+_DIGITS = re.compile(r"\d+")
+
+
 def _most_similar(title: str, groups: list[Group], threshold: float, min_len: int) -> tuple[Group | None, float]:
     best, best_ratio = None, 0.0
+    title_numbers = _DIGITS.findall(title)
     for g in groups:
         other = g.norm_title
         if len(other) < min_len:
+            continue
+        # "every 15 minutes" and "every 30 minutes" are different problems: numbers must match.
+        if _DIGITS.findall(other) != title_numbers:
             continue
         # Cheap length check before the expensive comparison.
         if abs(len(other) - len(title)) / max(len(other), len(title)) > (1 - threshold):
