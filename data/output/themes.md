@@ -246,3 +246,114 @@ Ranked by a mix of evidence, durability and how buildable it looks:
 4. **Theme 12, large-volume jsforce reliability.** Two of three still open; relevant to anyone moving Salesforce data in Node.
 
 Everything else is either fixed, vendor-only, or news. The admin pain the brief cares about most (Flow, reports, data export) is not in this run. Add `data/ideaexchange.csv` and rerun before deciding.
+
+---
+
+## Appendix: all 100 rows (fact columns from ranked.csv; type and theme are interpretation)
+
+Score is reactions for GitHub and points for Hacker News. Pct is the percentile within the row's own source.
+
+| Rank | Type | Theme | Title | Source | Score | Pct | Label | Last activity |
+|---|---|---|---|---|---|---|---|---|
+| 1 | news/announcement | 18 | [Show HN: Whiteboard (YC W26) – An open-source IDE for thoughtful software design](https://news.ycombinator.com/item?id=49833867) | hackernews | 424 | 1.0 | Moderate | 2026-09-24 |
+| 2 | news/announcement | 5 | [Announcement: Upcoming Breaking Changes - Enhancing CLI Credential Security and Mitigat...](https://github.com/forcedotcom/cli/issues/3560) | github | 19 | 0.9296 | Strong | 2026-10-27 |
+| 3 | news/announcement | 16 | [Salesforce Global Outage](https://news.ycombinator.com/item?id=49724488) | hackernews | 280 | 0.88 | Moderate | 2026-09-16 |
+| 4 | news/announcement | 17 | [Salesforce to Acquire Fin (formerly Intercom) for $3.6B](https://news.ycombinator.com/item?id=48540126) | hackernews | 327 | 0.92 | Moderate | 2026-06-15 |
+| 5 | complaint | 4 | [Node.js 24.17.0: jsforce request promise can hang with keep-alive transport](https://github.com/jsforce/jsforce/issues/1806) | github | 17 | 0.8967 | Moderate | 2026-07-20 |
+| 6 | complaint | 4 | [CLI doesn't work with node v24.17.0 or later.](https://github.com/forcedotcom/cli/issues/3586) | github | 12 | 0.8169 | Moderate | 2026-08-07 |
+| 7 | news/announcement | 5 | [Restricted usage of the `Salesforce CLI` connected app](https://github.com/forcedotcom/cli/issues/3368) | github | 11 | 0.7887 | Moderate | 2026-08-25 |
+| 8 | news/announcement | 18 | [\[info\]: 🌴 OOO: Maintainer away until April 27th](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/1139) | github | 18 | 0.9155 | Strong | 2026-05-12 |
+| 9 | complaint | 16 | [Apex tests that send email are failing due to domain verification requirement](https://github.com/forcedotcom/cli/issues/3534) | github | 12 | 0.8169 | Moderate | 2026-05-07 |
+| 10 | complaint | 1 | [Extension causes high cpu load](https://github.com/forcedotcom/salesforcedx-vscode/issues/6737) | github | 8 | 0.6573 | Anecdotal | 2026-07-17 |
+| 11 | news/announcement | 18 | [Show HN: Airbyte Agents – context for agents across multiple data sources](https://news.ycombinator.com/item?id=48023496) | hackernews | 156 | 0.72 | Anecdotal | 2026-05-05 |
+| 12 | request | 9 | [\[UI\] Dark Mode](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/64) | github | 7 | 0.5869 | Anecdotal | 2026-08-07 |
+| 13 | news/announcement | 17 | [Salesforce regrets firing 4000 experienced staff and replacing them with AI](https://news.ycombinator.com/item?id=46384781) | hackernews | 193 | 0.8 | Moderate | 2025-12-25 |
+| 14 | news/announcement | 17 | [Clockwise acquired by Salesforce](https://news.ycombinator.com/item?id=47444906) | hackernews | 147 | 0.68 | Anecdotal | 2026-03-19 |
+| 15 | news/announcement | 17 | [WorkOS reports security breach](https://news.ycombinator.com/item?id=50345712) | hackernews | 81 | 0.48 | Anecdotal | 2026-11-02 |
+| 16 | complaint | 2 | [Execute Anonymous no longer outputs to Output panel after salesforcedx-vscode-apex-log ...](https://github.com/forcedotcom/salesforcedx-vscode/issues/6943) | github | 9 | 0.7136 | Anecdotal | 2026-03-12 |
+| 17 | complaint | 2 | [Problems tab does not refresh when issues are addressed](https://github.com/forcedotcom/salesforcedx-vscode/issues/2608) | github | 11 | 0.7887 | Moderate | 2026-01-08 |
+| 18 | news/announcement | 17 | [Slack Code](https://news.ycombinator.com/item?id=49374965) | hackernews | 81 | 0.48 | Anecdotal | 2026-08-20 |
+| 19 | request | 8 | [Separate each Custom Label entry on its own file when working with the "Source" format](https://github.com/forcedotcom/cli/issues/1159) | github | 14 | 0.8592 | Moderate | 2025-12-15 |
+| 20 | complaint | 6 | [sf update fails: Error: HTTP 403: Invalid channel stable](https://github.com/forcedotcom/cli/issues/3458) | github | 11 | 0.7887 | Moderate | 2025-11-21 |
+| 21 | news/announcement | 17 | [Google suffers data breach in ongoing Salesforce data theft attacks](https://news.ycombinator.com/item?id=44812198) | hackernews | 207 | 0.84 | Moderate | 2025-08-06 |
+| 22 | news/announcement | 17 | [Optimizely hack infected CNN, Fox News, BBC, Salesforce sites with malware](https://news.ycombinator.com/item?id=50534664) | hackernews | 76 | 0.36 | Anecdotal | 2026-11-17 |
+| 23 | complaint | 10 | [Moderate level (GHSA-8cw4-87c7-c6xx) security audit with csv-parse](https://github.com/jsforce/jsforce/issues/1829) | github | 6 | 0.4178 | Anecdotal | 2026-09-28 |
+| 24 | news/announcement | 10 | [The future of jsforce](https://github.com/jsforce/jsforce/issues/1360) | github | 46 | 1.0 | Strong | 2025-03-03 |
+| 25 | request | 9 | [\[data-export\] SOQL WHERE IN ("thousands of ids") - Helper](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/394) | github | 6 | 0.4178 | Anecdotal | 2026-07-26 |
+| 26 | news/announcement | 17 | [Salesforce will hire no more software engineers in 2025, says Marc Benioff](https://news.ycombinator.com/item?id=42639417) | hackernews | 350 | 0.96 | Moderate | 2025-01-08 |
+| 27 | news/announcement | 17 | [CEO 'Jokes' ICE Is Watching Salesforce Employees Who Traveled to the U.S.](https://news.ycombinator.com/item?id=46969562) | hackernews | 86 | 0.52 | Anecdotal | 2026-02-11 |
+| 28 | complaint | 1 | [Lightning Web Components extension causes high CPU and memory exhaustion in latest vers...](https://github.com/forcedotcom/salesforcedx-vscode/issues/6758) | github | 6 | 0.4178 | Anecdotal | 2026-04-02 |
+| 29 | news/announcement | 18 | [Launch HN: Tokenless (YC S26) – Automatic model switching to save money](https://news.ycombinator.com/item?id=49099143) | hackernews | 71 | 0.32 | Anecdotal | 2026-07-29 |
+| 30 | how-to | 11 | [How to check if current connect is still valid or expired?](https://github.com/jsforce/jsforce/issues/833) | github | 7 | 0.5869 | Anecdotal | 2025-11-07 |
+| 31 | news/announcement | 17 | [Salesforce study finds LLM agents flunk CRM and confidentiality tests](https://news.ycombinator.com/item?id=44289554) | hackernews | 146 | 0.64 | Anecdotal | 2025-06-16 |
+| 32 | complaint | 15 | [pkg_resources deprecation warning when running CCI commands](https://github.com/SFDO-Tooling/CumulusCI/issues/3907) | github | 6 | 0.4178 | Anecdotal | 2026-04-07 |
+| 33 | news/announcement | 18 | [Show HN: Chroma Cloud – serverless search database for AI](https://news.ycombinator.com/item?id=44944241) | hackernews | 93 | 0.56 | Anecdotal | 2025-08-18 |
+| 34 | complaint | 5 | [sf org create scratch fails with C-1016 when authenticated via External Client App (JWT...](https://github.com/forcedotcom/cli/issues/3515) | github | 5 | 0.2582 | Anecdotal | 2026-09-29 |
+| 35 | request | 13 | [Add TypeScript support to LWC authoring format](https://github.com/salesforce/lwc/issues/2078) | github | 24 | 0.9718 | Moderate | 2024-10-25 |
+| 36 | news/announcement | 18 | [Show HN: Hurston-1 open source TTS that speak Southern American and Afro-English](https://news.ycombinator.com/item?id=50227330) | hackernews | 68 | 0.24 | Anecdotal | 2026-10-25 |
+| 37 | news/announcement | 17 | [Merlion: A Machine Learning Framework for Time Series Intelligence](https://news.ycombinator.com/item?id=43209064) | hackernews | 175 | 0.76 | Moderate | 2025-02-28 |
+| 38 | complaint | 3 | [Cannot run Apex Replay Debugger / error during Apex Language Server startup](https://github.com/forcedotcom/salesforcedx-vscode/issues/6366) | github | 7 | 0.5869 | Anecdotal | 2025-06-30 |
+| 39 | complaint | 1 | [Apex Autocomplete issues due to performance problems](https://github.com/forcedotcom/salesforcedx-vscode/issues/2095) | github | 23 | 0.9624 | Moderate | 2024-08-27 |
+| 40 | request | 3 | [Open Source the Apex Language Server](https://github.com/forcedotcom/salesforcedx-vscode/issues/305) | github | 10 | 0.7418 | Anecdotal | 2025-02-06 |
+| 41 | news/announcement | 18 | [Show HN: Open-source Deep Research across workplace applications](https://news.ycombinator.com/item?id=43242551) | hackernews | 125 | 0.6 | Anecdotal | 2025-03-03 |
+| 42 | request | 3 | [Support Java versions newer than 21](https://github.com/forcedotcom/salesforcedx-vscode/issues/6068) | github | 7 | 0.5869 | Anecdotal | 2025-04-18 |
+| 43 | complaint | 6 | [`sf org open`  opens wrong user](https://github.com/forcedotcom/cli/issues/3369) | github | 6 | 0.4178 | Anecdotal | 2025-10-02 |
+| 44 | complaint | 12 | [BUG (with fix): RecordStream.Parsable Cannot Stream More Than ~1M Results from Bulk.query](https://github.com/jsforce/jsforce/issues/697) | github | 7 | 0.5869 | Anecdotal | 2025-05-21 |
+| 45 | news/announcement | 7 | [Deprecated `sfdx source/mdapi/org` commands will be removed on November 6th, 2024](https://github.com/forcedotcom/cli/issues/2974) | github | 11 | 0.7887 | Moderate | 2024-11-21 |
+| 46 | request | 14 | [Apex unused methods and variables to find dead code](https://github.com/forcedotcom/salesforcedx-vscode/issues/1489) | github | 7 | 0.5869 | Anecdotal | 2025-08-05 |
+| 47 | news/announcement | 17 | [Salesforce told ICE it could help speed up hiring of immigration officers](https://news.ycombinator.com/item?id=45629643) | hackernews | 79 | 0.4 | Anecdotal | 2025-10-18 |
+| 48 | news/announcement | 10 | [Moving to 2.0 ](https://github.com/jsforce/jsforce/issues/889) | github | 26 | 0.9859 | Moderate | 2024-07-23 |
+| 49 | complaint | 10 | [request module (jsforce dependency) is deprecated](https://github.com/jsforce/jsforce/issues/999) | github | 23 | 0.9624 | Moderate | 2024-07-15 |
+| 50 | complaint | 15 | [Unmanaged Metadata not deploying during 2GP Package Create](https://github.com/SFDO-Tooling/CumulusCI/issues/3563) | github | 5 | 0.2582 | Anecdotal | 2026-05-22 |
+| 51 | complaint | 13 | [Seeing wrong Dynamic Components error in VS Code](https://github.com/salesforce/lwc/issues/3945) | github | 6 | 0.4178 | Anecdotal | 2025-09-08 |
+| 52 | news/announcement | 7 | [sf (v2) is Generally Available](https://github.com/forcedotcom/cli/issues/2132) | github | 18 | 0.9155 | Moderate | 2024-07-03 |
+| 53 | complaint | 2 | [Aura Language Server Holding Open `customLabels.d.ts`](https://github.com/forcedotcom/salesforcedx-vscode/issues/6827) | github | 5 | 0.2582 | Anecdotal | 2026-02-12 |
+| 54 | complaint | 15 | [cci task run create_community (and sf community create) Appears to Loop/Timeout During ...](https://github.com/SFDO-Tooling/CumulusCI/issues/3929) | github | 5 | 0.2582 | Anecdotal | 2026-05-22 |
+| 55 | news/announcement | 18 | [Launch HN: Chert (YC P26) – Twilio for iMessage](https://news.ycombinator.com/item?id=48267829) | hackernews | 62 | 0.16 | Anecdotal | 2026-05-25 |
+| 56 | request | 8 | [Managed Package's Object in Org Browser : Metadata](https://github.com/forcedotcom/salesforcedx-vscode/issues/1998) | github | 11 | 0.7887 | Moderate | 2024-06-13 |
+| 57 | complaint | 6 | [sfdx: No such file or directory](https://github.com/forcedotcom/cli/issues/2447) | github | 15 | 0.8779 | Moderate | 2024-02-08 |
+| 58 | complaint | 14 | [force:source:deploy --coverageformatters cobertura \| Incorrect class filename in Cober...](https://github.com/forcedotcom/cli/issues/1725) | github | 5 | 0.2582 | Anecdotal | 2026-01-11 |
+| 59 | request | 8 | [Package.xml Utilities](https://github.com/forcedotcom/salesforcedx-vscode/issues/1710) | github | 10 | 0.7418 | Anecdotal | 2024-08-23 |
+| 60 | request | 14 | [Ability to create my own test suite](https://github.com/forcedotcom/salesforcedx-vscode/issues/2186) | github | 10 | 0.7418 | Anecdotal | 2024-08-27 |
+| 61 | complaint | 6 | [sfdx push -> An internal error caused this command to fail. Please file a bug report at...](https://github.com/forcedotcom/cli/issues/2194) | github | 14 | 0.8592 | Moderate | 2024-01-05 |
+| 62 | complaint | 12 | [Salesforce streaming API stops streaming after an interval](https://github.com/jsforce/jsforce/issues/857) | github | 9 | 0.7136 | Anecdotal | 2024-06-11 |
+| 63 | complaint | 10 | [\[V2\] TS-2321 error on jsforce-gen-schema generated schema type file usage](https://github.com/jsforce/jsforce/issues/1355) | github | 6 | 0.4178 | Anecdotal | 2025-07-11 |
+| 64 | news/announcement | 17 | [Salesforce Pitched a 'Talent Acquisition' Contract to ICE](https://news.ycombinator.com/item?id=45622960) | hackernews | 70 | 0.28 | Anecdotal | 2025-10-17 |
+| 65 | request | 13 | [\[Feature Request\] Hook Onto VSCode Command Execution](https://github.com/forcedotcom/salesforcedx-vscode/issues/6378) | github | 6 | 0.4178 | Anecdotal | 2025-08-05 |
+| 66 | complaint | 1 | [Deploy Source to org command takes several minutes to complete](https://github.com/forcedotcom/salesforcedx-vscode/issues/4865) | github | 6 | 0.4178 | Anecdotal | 2024-08-23 |
+| 67 | complaint | 1 | [Incredibly Slow Startup](https://github.com/forcedotcom/salesforcedx-vscode/issues/4919) | github | 7 | 0.5869 | Anecdotal | 2024-03-04 |
+| 68 | news/announcement | 13 | [🔜  Update: Local Development Server Deprecation Notice & Announcement](https://github.com/forcedotcom/salesforcedx-vscode/issues/5501) | github | 7 | 0.5869 | Anecdotal | 2024-08-28 |
+| 69 | request | 8 | [Add ability to retrieve a Custom Field via the Org Browser](https://github.com/forcedotcom/salesforcedx-vscode/issues/2711) | github | 9 | 0.7136 | Anecdotal | 2024-08-29 |
+| 70 | how-to | 11 | [Check if connection is still valid](https://github.com/jsforce/jsforce/issues/699) | github | 11 | 0.7887 | Moderate | 2024-06-28 |
+| 71 | how-to | 11 | [Mocking/Stubbing](https://github.com/jsforce/jsforce/issues/26) | github | 8 | 0.6573 | Anecdotal | 2024-05-20 |
+| 72 | request | 8 | [More granular metadata instead of complex XMLs ](https://github.com/forcedotcom/salesforcedx-vscode/issues/4650) | github | 19 | 0.9296 | Moderate | 2024-02-27 |
+| 73 | complaint | 12 | [ECONNRESET ](https://github.com/jsforce/jsforce/issues/285) | github | 7 | 0.5869 | Anecdotal | 2024-07-15 |
+| 74 | request | 9 | [\[data-export\] Support for multiple SOQL/SOSL in tabs](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/132) | github | 5 | 0.2582 | Anecdotal | 2025-10-17 |
+| 75 | news/announcement | 17 | [Ron Conway Resigns Salesforce Foundation over Benioff's National Guard Comments](https://news.ycombinator.com/item?id=45610696) | hackernews | 68 | 0.24 | Anecdotal | 2025-10-16 |
+| 76 | complaint | 6 | [Impossible to deploy to production](https://github.com/forcedotcom/cli/issues/305) | github | 12 | 0.8169 | Moderate | 2023-12-12 |
+| 77 | request | 3 | [Official inline documentation](https://github.com/forcedotcom/salesforcedx-vscode/issues/2554) | github | 7 | 0.5869 | Anecdotal | 2024-08-29 |
+| 78 | request | 7 | [Upgrade all SFDX Commands to SF Commands](https://github.com/SFDO-Tooling/CumulusCI/issues/3621) | github | 6 | 0.4178 | Anecdotal | 2024-11-14 |
+| 79 | complaint | 2 | [Issue on problem panel not get clear after successful deployment](https://github.com/forcedotcom/salesforcedx-vscode/issues/4904) | github | 13 | 0.8357 | Moderate | 2023-07-17 |
+| 80 | how-to | 11 | [Is there a sendEmail() method?](https://github.com/jsforce/jsforce/issues/136) | github | 7 | 0.5869 | Anecdotal | 2024-05-20 |
+| 81 | news/announcement | 16 | [Capacity shortages during release preview](https://github.com/forcedotcom/cli/issues/1690) | github | 23 | 0.9624 | Moderate | 2023-01-12 |
+| 82 | complaint | 6 | [sfdx force:package:installed:list -> TypeError: this.config.getPluginsList is not a fun...](https://github.com/forcedotcom/cli/issues/2426) | github | 6 | 0.4178 | Anecdotal | 2024-04-30 |
+| 83 | news/announcement | 7 | [🔜 SFDX Commands will be transitioning to SF by April 1st](https://github.com/forcedotcom/salesforcedx-vscode/issues/5448) | github | 8 | 0.6573 | Anecdotal | 2024-04-08 |
+| 84 | news/announcement | 10 | [V2 Status](https://github.com/jsforce/jsforce/issues/1137) | github | 19 | 0.9296 | Moderate | 2023-09-18 |
+| 85 | news/announcement | 7 | [Announcement: new major version of @oclif/plugin-plugins](https://github.com/forcedotcom/cli/issues/2691) | github | 7 | 0.5869 | Anecdotal | 2024-05-01 |
+| 86 | request | 8 | [Support workspaces](https://github.com/forcedotcom/salesforcedx-vscode/issues/970) | github | 8 | 0.6573 | Anecdotal | 2024-02-24 |
+| 87 | request | 9 | [\[data-export\]: Support for formatting SOQL Queries](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/359) | github | 7 | 0.5869 | Anecdotal | 2024-08-21 |
+| 88 | request | 9 | [\[data-export\] Copy filtered records only](https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/93) | github | 5 | 0.2582 | Anecdotal | 2025-05-14 |
+| 89 | complaint | 1 | [Salesforce Extensions processes running even if VSCode is closed](https://github.com/forcedotcom/salesforcedx-vscode/issues/4591) | github | 8 | 0.6573 | Anecdotal | 2024-02-21 |
+| 90 | complaint | 6 | [SFDX Push error when metadata is moved](https://github.com/forcedotcom/cli/issues/2035) | github | 7 | 0.5869 | Anecdotal | 2024-01-31 |
+| 91 | complaint | 10 | [Request package vulnerable to SSRF](https://github.com/jsforce/jsforce/issues/1312) | github | 22 | 0.939 | Moderate | 2023-10-02 |
+| 92 | complaint | 10 | [the `request` module has a CVE](https://github.com/jsforce/jsforce/issues/1193) | github | 15 | 0.8779 | Moderate | 2023-10-02 |
+| 93 | complaint | 15 | [Running CumulusCI commands fail from dependency docutils version 0.22.0](https://github.com/SFDO-Tooling/CumulusCI/issues/3912) | github | 5 | 0.2582 | Anecdotal | 2025-08-06 |
+| 94 | request | 13 | [Private fields and methods with LightningElement](https://github.com/salesforce/lwc/issues/2335) | github | 6 | 0.4178 | Anecdotal | 2024-08-07 |
+| 95 | complaint | 2 | [When I "deploy this source to org" and the deploy fails it no longer shows the errors i...](https://github.com/forcedotcom/salesforcedx-vscode/issues/1411) | github | 8 | 0.6573 | Anecdotal | 2023-07-29 |
+| 96 | news/announcement | 2 | [Conflict Detection - Next iteration - Spec for feedback](https://github.com/forcedotcom/salesforcedx-vscode/issues/2034) | github | 10 | 0.7418 | Anecdotal | 2023-01-18 |
+| 97 | request | 8 | [Org Browser should have ability to update `manifest/package.xml`](https://github.com/forcedotcom/salesforcedx-vscode/issues/1768) | github | 7 | 0.5869 | Anecdotal | 2024-08-23 |
+| 98 | request | 8 | [Add option to force:source:retrieve to exclude Managed Package's components](https://github.com/forcedotcom/cli/issues/87) | github | 13 | 0.8357 | Moderate | 2023-08-01 |
+| 99 | request | 9 | [Extract deeply nested (more than 1 level) plan](https://github.com/forcedotcom/cli/issues/60) | github | 18 | 0.9155 | Moderate | 2023-08-01 |
+| 100 | how-to | 11 | [Connection.upsert for Inserting New Records Using Id as the External ID](https://github.com/jsforce/jsforce/issues/667) | github | 6 | 0.4178 | Anecdotal | 2024-05-31 |
+
+Theme numbers refer to the sections above. Type counts: complaint 37, how-to 5, news/announcement 35, request 23.
