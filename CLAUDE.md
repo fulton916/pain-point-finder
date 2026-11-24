@@ -101,3 +101,9 @@ Save as `data/output/themes.md`.
 - Arctic Shift archive for r/salesforce and r/SalesforceDeveloper (non-commercial research only; may stop working after March 2027).
 - Review sites (G2, Capterra) via manual CSV.
 - A simple dashboard view of `ranked.csv`.
+
+## Working rules (added after version 1)
+
+- Planned work lives in GitHub issues with the `enhancement` label. The "Later" list above is the long-range backlog; open an issue when an item is about to start.
+- Every change goes through a branch and a pull request. The PR body starts with `Closes #N`.
+- Collectors share `common.py` and `config.yaml`, so work on one collector at a time.
