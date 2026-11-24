@@ -1,0 +1,239 @@
+rank,title,best_url,source_count,sources,top_normalized_score,raw_score,comments,latest_activity,status,evidence_label,final_score
+1,Show HN: Whiteboard (YC W26) – An open-source IDE for thoughtful software design,https://news.ycombinator.com/item?id=49833867,1,hackernews,1.0,424,143,2026-09-24,,Moderate,0.9904
+2,Announcement: Upcoming Breaking Changes - Enhancing CLI Credential Security and Mitigating Exposure Risks,https://github.com/forcedotcom/cli/issues/3560,1,github,0.9296,19,12,2026-10-27,open,Strong,0.9332
+3,Salesforce Global Outage,https://news.ycombinator.com/item?id=49724488,1,hackernews,0.88,280,184,2026-09-16,,Moderate,0.8719
+4,Salesforce to Acquire Fin (formerly Intercom) for $3.6B,https://news.ycombinator.com/item?id=48540126,1,hackernews,0.92,327,241,2026-06-15,,Moderate,0.7765
+5,Node.js 24.17.0: jsforce request promise can hang with keep-alive transport,https://github.com/jsforce/jsforce/issues/1806,1,github,0.8967,17,12,2026-07-20,closed,Moderate,0.7565
+6,CLI doesn't work with node v24.17.0 or later.,https://github.com/forcedotcom/cli/issues/3586,1,github,0.8169,12,27,2026-08-07,closed,Moderate,0.7309
+7,Restricted usage of the `Salesforce CLI` connected app,https://github.com/forcedotcom/cli/issues/3368,1,github,0.7887,11,18,2026-08-25,closed,Moderate,0.7228
+8,[info]: 🌴 OOO: Maintainer away until April 27th,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/1139,1,github,0.9155,18,1,2026-05-12,open,Strong,0.6454
+9,Apex tests that send email are failing due to domain verification requirement,https://github.com/forcedotcom/cli/issues/3534,1,github,0.8169,12,29,2026-05-07,closed,Moderate,0.6263
+10,Extension causes high cpu load,https://github.com/forcedotcom/salesforcedx-vscode/issues/6737,1,github,0.6573,8,18,2026-07-17,open,Anecdotal,0.5725
+11,Show HN: Airbyte Agents – context for agents across multiple data sources,https://news.ycombinator.com/item?id=48023496,1,hackernews,0.72,156,48,2026-05-05,,Anecdotal,0.5677
+12,[UI] Dark Mode,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/64,1,github,0.5869,7,25,2026-08-07,open,Anecdotal,0.5426
+13,Salesforce regrets firing 4000 experienced staff and replacing them with AI,https://news.ycombinator.com/item?id=46384781,1,hackernews,0.8,193,121,2025-12-25,,Moderate,0.5206
+14,Clockwise acquired by Salesforce,https://news.ycombinator.com/item?id=47444906,1,hackernews,0.68,147,77,2026-03-19,,Anecdotal,0.5105
+15,WorkOS reports security breach,https://news.ycombinator.com/item?id=50345712,1,hackernews,0.48,81,11,2026-11-02,,Anecdotal,0.5105
+16,Execute Anonymous no longer outputs to Output panel after salesforcedx-vscode-apex-log introduced,https://github.com/forcedotcom/salesforcedx-vscode/issues/6943,1,github,0.7136,9,29,2026-03-12,closed,Anecdotal,0.5063
+17,Problems tab does not refresh when issues are addressed,https://github.com/forcedotcom/salesforcedx-vscode/issues/2608,1,github,0.7887,11,31,2026-01-08,closed,Moderate,0.4991
+18,Slack Code,https://news.ycombinator.com/item?id=49374965,1,hackernews,0.48,81,110,2026-08-20,,Anecdotal,0.4943
+19,"Separate each Custom Label entry on its own file when working with the ""Source"" format",https://github.com/forcedotcom/cli/issues/1159,1,github,0.8592,14,6,2025-12-15,closed,Moderate,0.4862
+20,sf update fails: Error: HTTP 403: Invalid channel stable,https://github.com/forcedotcom/cli/issues/3458,1,github,0.7887,11,29,2025-11-21,closed,Moderate,0.4602
+21,Google suffers data breach in ongoing Salesforce data theft attacks,https://news.ycombinator.com/item?id=44812198,1,hackernews,0.84,207,92,2025-08-06,,Moderate,0.4317
+22,"Optimizely hack infected CNN, Fox News, BBC, Salesforce sites with malware",https://news.ycombinator.com/item?id=50534664,1,hackernews,0.36,76,17,2026-11-17,,Anecdotal,0.4132
+23,Moderate level (GHSA-8cw4-87c7-c6xx) security audit with csv-parse,https://github.com/jsforce/jsforce/issues/1829,1,github,0.4178,6,1,2026-09-28,closed,Anecdotal,0.389
+24,The future of jsforce,https://github.com/jsforce/jsforce/issues/1360,1,github,1.0,46,30,2025-03-03,closed,Strong,0.3704
+25,"[data-export] SOQL WHERE IN (""thousands of ids"") - Helper",https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/394,1,github,0.4178,6,5,2026-07-26,open,Anecdotal,0.3681
+26,"Salesforce will hire no more software engineers in 2025, says Marc Benioff",https://news.ycombinator.com/item?id=42639417,1,hackernews,0.96,350,390,2025-01-08,,Moderate,0.3619
+27,CEO 'Jokes' ICE Is Watching Salesforce Employees Who Traveled to the U.S.,https://news.ycombinator.com/item?id=46969562,1,hackernews,0.52,86,17,2026-02-11,,Anecdotal,0.3597
+28,Lightning Web Components extension causes high CPU and memory exhaustion in latest version (65.12.1),https://github.com/forcedotcom/salesforcedx-vscode/issues/6758,1,github,0.4178,6,41,2026-04-02,closed,Anecdotal,0.3419
+29,Launch HN: Tokenless (YC S26) – Automatic model switching to save money,https://news.ycombinator.com/item?id=49099143,1,hackernews,0.32,71,63,2026-07-29,,Anecdotal,0.339
+30,How to check if current connect is still valid or expired?,https://github.com/jsforce/jsforce/issues/833,1,github,0.5869,7,14,2025-11-07,open,Anecdotal,0.3385
+31,Salesforce study finds LLM agents flunk CRM and confidentiality tests,https://news.ycombinator.com/item?id=44289554,1,hackernews,0.64,146,87,2025-06-16,,Anecdotal,0.3254
+32,pkg_resources deprecation warning when running CCI commands,https://github.com/SFDO-Tooling/CumulusCI/issues/3907,1,github,0.4178,6,10,2026-04-07,closed,Anecdotal,0.3177
+33,Show HN: Chroma Cloud – serverless search database for AI,https://news.ycombinator.com/item?id=44944241,1,hackernews,0.56,93,40,2025-08-18,,Anecdotal,0.307
+34,sf org create scratch fails with C-1016 when authenticated via External Client App (JWT Bearer Flow),https://github.com/forcedotcom/cli/issues/3515,1,github,0.2582,5,26,2026-09-29,open,Anecdotal,0.2981
+35,Add TypeScript support to LWC authoring format,https://github.com/salesforce/lwc/issues/2078,1,github,0.9718,24,27,2024-10-25,open,Moderate,0.2964
+36,Show HN: Hurston-1 open source TTS that speak Southern American and Afro-English,https://news.ycombinator.com/item?id=50227330,1,hackernews,0.24,68,28,2026-10-25,,Anecdotal,0.2939
+37,Merlion: A Machine Learning Framework for Time Series Intelligence,https://news.ycombinator.com/item?id=43209064,1,hackernews,0.76,175,19,2025-02-28,,Moderate,0.2882
+38,Cannot run Apex Replay Debugger / error during Apex Language Server startup,https://github.com/forcedotcom/salesforcedx-vscode/issues/6366,1,github,0.5869,7,14,2025-06-30,closed,Anecdotal,0.2762
+39,Apex Autocomplete issues due to performance problems,https://github.com/forcedotcom/salesforcedx-vscode/issues/2095,1,github,0.9624,23,20,2024-08-27,closed,Moderate,0.2645
+40,Open Source the Apex Language Server,https://github.com/forcedotcom/salesforcedx-vscode/issues/305,1,github,0.7418,10,10,2025-02-06,closed,Anecdotal,0.2615
+41,Show HN: Open-source Deep Research across workplace applications,https://news.ycombinator.com/item?id=43242551,1,hackernews,0.6,125,30,2025-03-03,,Anecdotal,0.2499
+42,Support Java versions newer than 21,https://github.com/forcedotcom/salesforcedx-vscode/issues/6068,1,github,0.5869,7,12,2025-04-18,closed,Anecdotal,0.2448
+43,`sf org open`  opens wrong user,https://github.com/forcedotcom/cli/issues/3369,1,github,0.4178,6,14,2025-10-02,open,Anecdotal,0.2433
+44,BUG (with fix): RecordStream.Parsable Cannot Stream More Than ~1M Results from Bulk.query,https://github.com/jsforce/jsforce/issues/697,1,github,0.5869,7,5,2025-05-21,open,Anecdotal,0.2418
+45,"Deprecated `sfdx source/mdapi/org` commands will be removed on November 6th, 2024",https://github.com/forcedotcom/cli/issues/2974,1,github,0.7887,11,8,2024-11-21,closed,Moderate,0.2403
+46,Apex unused methods and variables to find dead code,https://github.com/forcedotcom/salesforcedx-vscode/issues/1489,1,github,0.5869,7,0,2025-08-05,closed,Anecdotal,0.238
+47,Salesforce told ICE it could help speed up hiring of immigration officers,https://news.ycombinator.com/item?id=45629643,1,hackernews,0.4,79,11,2025-10-18,,Anecdotal,0.2363
+48,Moving to 2.0 ,https://github.com/jsforce/jsforce/issues/889,1,github,0.9859,26,6,2024-07-23,closed,Moderate,0.2339
+49,request module (jsforce dependency) is deprecated,https://github.com/jsforce/jsforce/issues/999,1,github,0.9624,23,7,2024-07-15,closed,Moderate,0.2292
+50,Unmanaged Metadata not deploying during 2GP Package Create,https://github.com/SFDO-Tooling/CumulusCI/issues/3563,1,github,0.2582,5,7,2026-05-22,closed,Anecdotal,0.2231
+51,Seeing wrong Dynamic Components error in VS Code,https://github.com/salesforce/lwc/issues/3945,1,github,0.4178,6,7,2025-09-08,open,Anecdotal,0.2221
+52,sf (v2) is Generally Available,https://github.com/forcedotcom/cli/issues/2132,1,github,0.9155,18,9,2024-07-03,closed,Moderate,0.2204
+53,Aura Language Server Holding Open `customLabels.d.ts`,https://github.com/forcedotcom/salesforcedx-vscode/issues/6827,1,github,0.2582,5,27,2026-02-12,closed,Anecdotal,0.2171
+54,cci task run create_community (and sf community create) Appears to Loop/Timeout During Community Creation,https://github.com/SFDO-Tooling/CumulusCI/issues/3929,1,github,0.2582,5,4,2026-05-22,closed,Anecdotal,0.2137
+55,Launch HN: Chert (YC P26) – Twilio for iMessage,https://news.ycombinator.com/item?id=48267829,1,hackernews,0.16,62,200,2026-05-25,,Anecdotal,0.2131
+56,Managed Package's Object in Org Browser : Metadata,https://github.com/forcedotcom/salesforcedx-vscode/issues/1998,1,github,0.7887,11,18,2024-06-13,closed,Moderate,0.2035
+57,sfdx: No such file or directory,https://github.com/forcedotcom/cli/issues/2447,1,github,0.8779,15,44,2024-02-08,closed,Moderate,0.2029
+58,force:source:deploy --coverageformatters cobertura | Incorrect class filename in Cobertura XML reports ,https://github.com/forcedotcom/cli/issues/1725,1,github,0.2582,5,17,2026-01-11,open,Anecdotal,0.1993
+59,Package.xml Utilities,https://github.com/forcedotcom/salesforcedx-vscode/issues/1710,1,github,0.7418,10,6,2024-08-23,closed,Anecdotal,0.1946
+60,Ability to create my own test suite,https://github.com/forcedotcom/salesforcedx-vscode/issues/2186,1,github,0.7418,10,5,2024-08-27,closed,Anecdotal,0.1927
+61,sfdx push -> An internal error caused this command to fail. Please file a bug report at https://github.com/isomorphic-git/isomorphic-git/issues with this error message: Index file is empty,https://github.com/forcedotcom/cli/issues/2194,1,github,0.8592,14,40,2024-01-05,closed,Moderate,0.1905
+62,Salesforce streaming API stops streaming after an interval,https://github.com/jsforce/jsforce/issues/857,1,github,0.7136,9,19,2024-06-11,open,Anecdotal,0.1903
+63,[V2] TS-2321 error on jsforce-gen-schema generated schema type file usage,https://github.com/jsforce/jsforce/issues/1355,1,github,0.4178,6,3,2025-07-11,open,Anecdotal,0.1892
+64,Salesforce Pitched a 'Talent Acquisition' Contract to ICE,https://news.ycombinator.com/item?id=45622960,1,hackernews,0.28,70,15,2025-10-17,,Anecdotal,0.1859
+65,[Feature Request] Hook Onto VSCode Command Execution,https://github.com/forcedotcom/salesforcedx-vscode/issues/6378,1,github,0.4178,6,1,2025-08-05,closed,Anecdotal,0.1832
+66,Deploy Source to org command takes several minutes to complete,https://github.com/forcedotcom/salesforcedx-vscode/issues/4865,1,github,0.4178,6,108,2024-08-23,closed,Anecdotal,0.1815
+67,Incredibly Slow Startup,https://github.com/forcedotcom/salesforcedx-vscode/issues/4919,1,github,0.5869,7,85,2024-03-04,closed,Anecdotal,0.1779
+68,🔜  Update: Local Development Server Deprecation Notice & Announcement,https://github.com/forcedotcom/salesforcedx-vscode/issues/5501,1,github,0.5869,7,11,2024-08-28,closed,Anecdotal,0.174
+69,Add ability to retrieve a Custom Field via the Org Browser,https://github.com/forcedotcom/salesforcedx-vscode/issues/2711,1,github,0.7136,9,2,2024-08-29,closed,Anecdotal,0.1734
+70,Check if connection is still valid,https://github.com/jsforce/jsforce/issues/699,1,github,0.7887,11,2,2024-06-28,closed,Moderate,0.1708
+71,Mocking/Stubbing,https://github.com/jsforce/jsforce/issues/26,1,github,0.6573,8,9,2024-05-20,closed,Anecdotal,0.1612
+72,More granular metadata instead of complex XMLs ,https://github.com/forcedotcom/salesforcedx-vscode/issues/4650,1,github,0.9296,19,2,2024-02-27,closed,Moderate,0.161
+73,ECONNRESET ,https://github.com/jsforce/jsforce/issues/285,1,github,0.5869,7,9,2024-07-15,closed,Anecdotal,0.1604
+74,[data-export] Support for multiple SOQL/SOSL in tabs,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/132,1,github,0.2582,5,6,2025-10-17,closed,Anecdotal,0.1591
+75,Ron Conway Resigns Salesforce Foundation over Benioff's National Guard Comments,https://news.ycombinator.com/item?id=45610696,1,hackernews,0.24,68,9,2025-10-16,,Anecdotal,0.1576
+76,Impossible to deploy to production,https://github.com/forcedotcom/cli/issues/305,1,github,0.8169,12,12,2023-12-12,closed,Moderate,0.1569
+77,Official inline documentation,https://github.com/forcedotcom/salesforcedx-vscode/issues/2554,1,github,0.5869,7,4,2024-08-29,closed,Anecdotal,0.1567
+78,Upgrade all SFDX Commands to SF Commands,https://github.com/SFDO-Tooling/CumulusCI/issues/3621,1,github,0.4178,6,11,2024-11-14,closed,Anecdotal,0.1522
+79,Issue on problem panel not get clear after successful deployment,https://github.com/forcedotcom/salesforcedx-vscode/issues/4904,1,github,0.8357,13,32,2023-07-17,closed,Moderate,0.1515
+80,Is there a sendEmail() method?,https://github.com/jsforce/jsforce/issues/136,1,github,0.5869,7,9,2024-05-20,closed,Anecdotal,0.1489
+81,Capacity shortages during release preview,https://github.com/forcedotcom/cli/issues/1690,1,github,0.9624,23,48,2023-01-12,closed,Moderate,0.1439
+82,sfdx force:package:installed:list -> TypeError: this.config.getPluginsList is not a function,https://github.com/forcedotcom/cli/issues/2426,1,github,0.4178,6,37,2024-04-30,closed,Anecdotal,0.1432
+83,🔜 SFDX Commands will be transitioning to SF by April 1st,https://github.com/forcedotcom/salesforcedx-vscode/issues/5448,1,github,0.6573,8,5,2024-04-08,closed,Anecdotal,0.1422
+84,V2 Status,https://github.com/jsforce/jsforce/issues/1137,1,github,0.9296,19,6,2023-09-18,closed,Moderate,0.1412
+85,Announcement: new major version of @oclif/plugin-plugins,https://github.com/forcedotcom/cli/issues/2691,1,github,0.5869,7,7,2024-05-01,closed,Anecdotal,0.1408
+86,Support workspaces,https://github.com/forcedotcom/salesforcedx-vscode/issues/970,1,github,0.6573,8,6,2024-02-24,closed,Anecdotal,0.1366
+87,[data-export]: Support for formatting SOQL Queries,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/359,1,github,0.5869,7,1,2024-08-21,open,Anecdotal,0.1365
+88,[data-export] Copy filtered records only,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/93,1,github,0.2582,5,7,2025-05-14,closed,Anecdotal,0.1309
+89,Salesforce Extensions processes running even if VSCode is closed,https://github.com/forcedotcom/salesforcedx-vscode/issues/4591,1,github,0.6573,8,4,2024-02-21,closed,Anecdotal,0.1295
+90,SFDX Push error when metadata is moved,https://github.com/forcedotcom/cli/issues/2035,1,github,0.5869,7,9,2024-01-31,closed,Anecdotal,0.1295
+91,Request package vulnerable to SSRF,https://github.com/jsforce/jsforce/issues/1312,1,github,0.939,22,2,2023-10-02,closed,Moderate,0.1281
+92,the `request` module has a CVE,https://github.com/jsforce/jsforce/issues/1193,1,github,0.8779,15,3,2023-10-02,closed,Moderate,0.1269
+93,Running CumulusCI commands fail from dependency docutils version 0.22.0,https://github.com/SFDO-Tooling/CumulusCI/issues/3912,1,github,0.2582,5,2,2025-08-06,closed,Anecdotal,0.1267
+94,Private fields and methods with LightningElement,https://github.com/salesforce/lwc/issues/2335,1,github,0.4178,6,7,2024-08-07,open,Anecdotal,0.1265
+95,"When I ""deploy this source to org"" and the deploy fails it no longer shows the errors in the panel.",https://github.com/forcedotcom/salesforcedx-vscode/issues/1411,1,github,0.6573,8,19,2023-07-29,closed,Anecdotal,0.1255
+96,Conflict Detection - Next iteration - Spec for feedback,https://github.com/forcedotcom/salesforcedx-vscode/issues/2034,1,github,0.7418,10,35,2023-01-18,closed,Anecdotal,0.1232
+97,Org Browser should have ability to update `manifest/package.xml`,https://github.com/forcedotcom/salesforcedx-vscode/issues/1768,1,github,0.5869,7,0,2024-08-23,closed,Anecdotal,0.1232
+98,Add option to force:source:retrieve to exclude Managed Package's components,https://github.com/forcedotcom/cli/issues/87,1,github,0.8357,13,5,2023-08-01,closed,Moderate,0.1198
+99,Extract deeply nested (more than 1 level) plan,https://github.com/forcedotcom/cli/issues/60,1,github,0.9155,18,3,2023-08-01,closed,Moderate,0.1197
+100,Connection.upsert for Inserting New Records Using Id as the External ID,https://github.com/jsforce/jsforce/issues/667,1,github,0.4178,6,8,2024-05-31,closed,Anecdotal,0.1187
+101,[data-import] Enable editing a cell in the import screen,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/573,1,github,0.2582,5,2,2025-06-05,open,Anecdotal,0.1152
+102,coffee-script has moved to coffeescript,https://github.com/jsforce/jsforce/issues/704,1,github,0.4178,6,4,2024-07-15,closed,Anecdotal,0.1136
+103,force:org:create - Socket timeout occurred while listening for results.,https://github.com/forcedotcom/cli/issues/1149,1,github,0.5869,7,32,2023-02-23,closed,Anecdotal,0.1135
+104,"Unable to deploy on save (only push, but I don't want that)",https://github.com/forcedotcom/salesforcedx-vscode/issues/4813,1,github,0.6573,8,15,2023-05-24,closed,Anecdotal,0.1134
+105,mdapi:deploy and source:deploy need test results file output,https://github.com/forcedotcom/cli/issues/57,1,github,0.8357,13,9,2023-04-06,closed,Moderate,0.1132
+106,[data-export] Include a SOSL editor,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/131,1,github,0.4178,6,4,2024-07-08,closed,Anecdotal,0.1125
+107," `sfdx force:org:create` creates scratchorgs in russian, ignoring language and locale settings in prod org ",https://github.com/forcedotcom/cli/issues/1962,1,github,0.5869,7,25,2023-04-03,closed,Anecdotal,0.1121
+108,Launch HN: MindFort (YC X25) – AI agents for continuous pentesting,https://news.ycombinator.com/item?id=44117465,1,hackernews,0.12,60,24,2025-05-28,,Anecdotal,0.107
+109,Add a way to Step Back in Apex Replay Debugger,https://github.com/forcedotcom/salesforcedx-vscode/issues/775,1,github,0.7136,9,0,2024-02-24,closed,Anecdotal,0.1061
+110,sf project deploy validate --json to include the deploymentId in the output json object for further processing,https://github.com/forcedotcom/cli/issues/2312,1,github,0.7136,9,5,2023-07-21,closed,Anecdotal,0.106
+111,"Deleting a field will also delete related metadata (Layouts, Profiles...) from local repo",https://github.com/forcedotcom/cli/issues/329,1,github,0.5869,7,6,2023-10-04,closed,Anecdotal,0.1055
+112,Issues with installing sfdx-plugins - JavaScript heap out of memory,https://github.com/forcedotcom/cli/issues/1319,1,github,0.5869,7,34,2022-10-20,closed,Anecdotal,0.1054
+113,Show HN: Metorial (YC F25) – Vercel for MCP,https://news.ycombinator.com/item?id=45580771,1,hackernews,0.08,59,25,2025-10-14,,Anecdotal,0.1022
+114,Ability to run post-install anonymous scripts on unlocked packages,https://github.com/forcedotcom/cli/issues/1338,1,github,0.5869,7,7,2023-08-01,closed,Anecdotal,0.1006
+115,xml2js is vulnerable to prototype pollution,https://github.com/jsforce/jsforce/issues/1318,1,github,0.7136,9,7,2023-04-20,closed,Anecdotal,0.1005
+116,SFDX Org Creation command fails with strange error `DomainNotFound` `The org cannot be found`,https://github.com/forcedotcom/cli/issues/1874,1,github,0.5869,7,18,2023-01-24,closed,Anecdotal,0.1001
+117,Intermittent duplicate picklist value errors,https://github.com/forcedotcom/cli/issues/1605,1,github,0.7136,9,24,2022-07-09,closed,Anecdotal,0.0987
+118,Performance issue when passing array down in grand-level children components.,https://github.com/salesforce/lwc/issues/1833,1,github,0.9953,30,5,2022-11-29,closed,Moderate,0.0987
+119,sfdx force:package:install --package to accept LATEST placeholder,https://github.com/forcedotcom/cli/issues/153,1,github,0.6573,8,4,2023-08-01,closed,Anecdotal,0.0982
+120,sfdx force:source:deploy with specified manifest having specific fields deploys everything in the local object folder,https://github.com/forcedotcom/cli/issues/156,1,github,0.8873,16,26,2022-01-25,closed,Moderate,0.0971
+121,Any plans for PK chunking support?,https://github.com/jsforce/jsforce/issues/605,1,github,0.4178,6,2,2024-05-21,closed,Anecdotal,0.0953
+122,Do not switch to the Output panel when deploy on save is enabled,https://github.com/forcedotcom/salesforcedx-vscode/issues/5903,1,github,0.2582,5,4,2024-11-12,closed,Anecdotal,0.0953
+123,Error: socket hang up don't return 1,https://github.com/forcedotcom/cli/issues/340,1,github,0.5869,7,17,2022-11-18,closed,Anecdotal,0.0941
+124,Slow startup of SFDX VSCode plugins,https://github.com/forcedotcom/salesforcedx-vscode/issues/3831,1,github,0.7136,9,3,2023-06-16,closed,Anecdotal,0.0934
+125,Allow wildcards in force:source:retrieve/deploy,https://github.com/forcedotcom/cli/issues/182,1,github,0.7887,11,1,2023-08-01,closed,Moderate,0.0931
+126,Can someone explain what pollTimeout and pollInterval do together?,https://github.com/jsforce/jsforce/issues/901,1,github,0.2582,5,4,2024-10-18,closed,Anecdotal,0.0924
+127,Please Use Beta Packaging Commands,https://github.com/forcedotcom/cli/issues/1721,1,github,0.5869,7,11,2023-02-03,closed,Anecdotal,0.0917
+128,Improve handling of self-referencing lookups by force:data:tree commands,https://github.com/forcedotcom/cli/issues/248,1,github,0.5869,7,4,2023-08-01,closed,Anecdotal,0.0911
+129,Cannot read property 'fspath' of undefined --> when using a Keyboard shortcut to deploy Salesforce file,https://github.com/forcedotcom/salesforcedx-vscode/issues/662,1,github,0.2582,5,58,2021-11-24,closed,Anecdotal,0.0896
+130,Org Browser,https://github.com/forcedotcom/salesforcedx-vscode/issues/862,1,github,0.7136,9,23,2022-01-31,closed,Anecdotal,0.089
+131,HTTP request timeout,https://github.com/jsforce/jsforce/issues/618,1,github,0.4178,6,1,2024-05-22,closed,Anecdotal,0.0874
+132,Include force:source:deploy errors in problem view,https://github.com/forcedotcom/salesforcedx-vscode/issues/588,1,github,0.2582,5,10,2024-02-27,closed,Anecdotal,0.0866
+133,"Salesforce pulls back from LLMs, pivots Agentforce to deterministic automation",https://news.ycombinator.com/item?id=46410153,1,hackernews,0.04,53,25,2025-12-28,,Anecdotal,0.0865
+134,"force:org:create fails claiming ancestor is not released, when ancestor is released.",https://github.com/forcedotcom/cli/issues/312,1,github,0.2582,5,8,2024-04-08,closed,Anecdotal,0.0857
+135,Announcing the Source Plugin beta!,https://github.com/forcedotcom/cli/issues/1057,1,github,0.9906,27,4,2022-08-22,closed,Moderate,0.084
+136,MaxListenersExceededWarning after updating to v7.30,https://github.com/forcedotcom/cli/issues/216,1,github,0.8169,12,44,2020-01-27,closed,Moderate,0.0833
+137,force:mdapi:deploy - versions.map is not a function,https://github.com/forcedotcom/cli/issues/1687,1,github,0.4178,6,18,2022-10-18,closed,Anecdotal,0.0832
+138,MDAPI REST Deploy - `Unexpected token < in JSON at position` -- incorrect exit code,https://github.com/forcedotcom/cli/issues/860,1,github,0.4178,6,41,2021-04-09,closed,Anecdotal,0.0832
+139,"Error on mdapi:deploy asking for location of ""server.key""",https://github.com/forcedotcom/cli/issues/124,1,github,0.4178,6,47,2020-09-01,closed,Anecdotal,0.083
+140,Check for conflicts when deploying/retrieving,https://github.com/forcedotcom/salesforcedx-vscode/issues/971,1,github,0.2582,5,52,2020-07-22,closed,Anecdotal,0.0826
+141,Auto Completion on Managed Packages,https://github.com/forcedotcom/salesforcedx-vscode/issues/1177,1,github,0.2582,5,3,2024-08-23,closed,Anecdotal,0.0819
+142,sfdx Deploying w Unreleased API Version by Default,https://github.com/forcedotcom/cli/issues/1656,1,github,0.2582,5,9,2024-01-16,closed,Anecdotal,0.0817
+143,Test Salesforce CLI with Multiple Packages - Feedback Requested,https://github.com/forcedotcom/cli/issues/379,1,github,0.8779,15,34,2020-07-09,closed,Moderate,0.0817
+144,Constructible Stylesheet Support,https://github.com/salesforce/lwc/issues/1346,1,github,0.6573,8,23,2021-09-14,closed,Anecdotal,0.0815
+145,Unable to create a Preview Org,https://github.com/forcedotcom/cli/issues/260,1,github,0.8169,12,8,2022-05-11,closed,Moderate,0.0791
+146,[data-export] Copy data without objectnames,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/94,1,github,0.2582,5,2,2024-09-19,closed,Anecdotal,0.079
+147,add support for optional chaining in JS and templates,https://github.com/salesforce/lwc/issues/1508,1,github,0.9859,26,19,2021-03-01,closed,Moderate,0.0784
+148,Create graphql loader for lwc,https://github.com/salesforce/lwc/issues/3581,1,github,0.4178,6,4,2023-09-19,open,Anecdotal,0.0782
+149,"Temporary folder ""shape"" not cleared out before `force:org:create` command executes",https://github.com/forcedotcom/cli/issues/753,1,github,0.5869,7,14,2022-04-12,closed,Anecdotal,0.0781
+150,Please restore -definitionfile param to force:org:shape:create,https://github.com/forcedotcom/cli/issues/873,1,github,0.5869,7,7,2022-11-17,closed,Anecdotal,0.0778
+151,sf package version create --json not returning proper json output,https://github.com/forcedotcom/cli/issues/2562,1,github,0.2582,5,9,2023-11-11,closed,Anecdotal,0.0775
+152,Managed Package Version Creation Error for CLI v 7.172.+,https://github.com/forcedotcom/cli/issues/1771,1,github,0.4178,6,12,2022-11-16,closed,Anecdotal,0.077
+153,Transition / Animation system,https://github.com/salesforce/lwc/issues/1699,1,github,0.2582,5,12,2023-06-29,open,Anecdotal,0.0757
+154,Retrieve command on developer org throwing error “ERROR running force:source:retrieve: Cannot read property 'record' of undefined”,https://github.com/forcedotcom/cli/issues/581,1,github,0.7418,10,24,2020-09-10,closed,Anecdotal,0.0744
+155,sfdx force:auth:web:login -r https://login.salesforce.com ==> Browser just loads forever.,https://github.com/forcedotcom/cli/issues/881,1,github,0.8592,14,17,2021-03-10,closed,Moderate,0.0742
+156,"""Retrieve Source From Org"" doesn't update originating source file",https://github.com/forcedotcom/cli/issues/97,1,github,0.7418,10,23,2020-08-06,closed,Anecdotal,0.073
+157,SFDX CLI: Error: Cannot find module 'lodash/core',https://github.com/forcedotcom/cli/issues/464,1,github,0.8592,14,22,2020-07-08,closed,Moderate,0.073
+158,Ver 2.0 : Moving to the Modern Architecture (ES2015+),https://github.com/jsforce/jsforce/issues/593,1,github,0.2582,5,2,2024-07-23,closed,Anecdotal,0.073
+159,Apex Extension not loading before it can be activated (high CPU usage),https://github.com/forcedotcom/salesforcedx-vscode/issues/2803,1,github,0.2582,5,25,2021-10-22,closed,Anecdotal,0.0727
+160,"`force:project:create`command returns ""ERR_ASSERTION: A name parameter is required to create a storage""",https://github.com/forcedotcom/salesforcedx-vscode/issues/253,1,github,0.4178,6,16,2022-01-26,closed,Anecdotal,0.0714
+161,Open scratch org in any region/pod/datacenter,https://github.com/forcedotcom/cli/issues/679,1,github,0.4178,6,4,2023-06-22,closed,Anecdotal,0.0711
+162,Announcement: Rollback of 50.13.3 CLI 7.84.2,https://github.com/forcedotcom/cli/issues/811,1,github,0.8967,17,14,2021-02-22,closed,Moderate,0.0708
+163,Indexing Lightning Components is stuck forever,https://github.com/forcedotcom/salesforcedx-vscode/issues/1832,1,github,0.9624,23,18,2020-06-17,closed,Moderate,0.07
+164,"Add argument to specify ""ancestor"" with `force:package:version:create`",https://github.com/forcedotcom/cli/issues/178,1,github,0.4178,6,3,2023-08-01,closed,Anecdotal,0.0697
+165,Support transforming `.mjs` files,https://github.com/salesforce/lwc/issues/3474,1,github,0.2582,5,2,2024-06-10,open,Anecdotal,0.069
+166,The Salesforce CLI Team is Hiring in the US and Argentina!,https://github.com/forcedotcom/cli/issues/700,1,github,0.9343,21,0,2023-02-13,closed,Moderate,0.0681
+167,[data-export] Add a formatter for SOQL Queries,https://github.com/tprouvot/Salesforce-Inspector-reloaded/issues/216,1,github,0.2582,5,3,2024-03-19,closed,Anecdotal,0.0679
+168,Improve sfdx force:user:permset:assign to accept Permission Set Groups,https://github.com/forcedotcom/cli/issues/1066,1,github,0.2582,5,11,2022-12-09,closed,Anecdotal,0.0663
+169,Error when trying to deploy file of LWC or Aura,https://github.com/forcedotcom/salesforcedx-vscode/issues/1635,1,github,0.8592,14,19,2019-09-18,closed,Moderate,0.0658
+170,"sfdx-cli@7.46.1 will not install from npm, Cannot read property 'match' of undefined",https://github.com/forcedotcom/cli/issues/304,1,github,0.9155,18,14,2020-08-06,closed,Moderate,0.0658
+171,Add support for missing package settings,https://github.com/forcedotcom/cli/issues/3,1,github,0.2582,5,6,2023-08-01,closed,Anecdotal,0.0649
+172,sfdx force:source:deploy Succeeds for fieldsets outside of the custom object folder while sfdx force:source:push Fails,https://github.com/forcedotcom/cli/issues/587,1,github,0.2582,5,9,2023-02-13,closed,Anecdotal,0.0649
+173,.forceignore **.md bug,https://github.com/forcedotcom/cli/issues/48,1,github,0.2582,5,18,2021-05-20,closed,Anecdotal,0.0645
+174,TR treats as inline element other child components.,https://github.com/salesforce/lwc/issues/1691,1,github,0.7887,11,16,2020-03-12,closed,Moderate,0.0642
+175,Changing `force:apex:execute` behavior,https://github.com/forcedotcom/cli/issues/1889,1,github,0.8779,15,0,2023-02-14,closed,Moderate,0.0641
+176,Deploy On Save Performance Update,https://github.com/forcedotcom/salesforcedx-vscode/issues/1155,1,github,0.8169,12,18,2019-07-05,closed,Moderate,0.0638
+177,Parse error in file C:\Users\[user-name]\.sfdx\stash.json on line 1,https://github.com/forcedotcom/cli/issues/421,1,github,0.4178,6,11,2021-12-02,closed,Anecdotal,0.063
+178,sfdx force:source:deploy is not deploying the custom fields.,https://github.com/forcedotcom/cli/issues/628,1,github,0.2582,5,18,2020-12-07,closed,Anecdotal,0.063
+179,Support for Change Set Based Development,https://github.com/forcedotcom/salesforcedx-vscode/issues/123,1,github,0.7887,11,19,2018-10-26,closed,Moderate,0.0628
+180,Bulk load method silently fails,https://github.com/jsforce/jsforce/issues/1277,1,github,0.2582,5,1,2024-06-28,closed,Anecdotal,0.0626
+181,Allow Output path for sfdx force:source:retrieve,https://github.com/forcedotcom/cli/issues/233,1,github,0.4178,6,4,2023-02-10,closed,Anecdotal,0.0625
+182,sfdx plugins:install fails,https://github.com/forcedotcom/cli/issues/592,1,github,0.7136,9,13,2020-09-10,closed,Anecdotal,0.0625
+183,force:data:soql:query prints [object Object] for related related record,https://github.com/forcedotcom/cli/issues/264,1,github,0.7136,9,8,2021-08-10,closed,Anecdotal,0.0622
+184,force:user:permset:assign fails on 7.84.2,https://github.com/forcedotcom/cli/issues/802,1,github,0.8873,16,9,2021-02-11,closed,Moderate,0.0622
+185,Publish .vsix file to open-vsx.org registry,https://github.com/forcedotcom/salesforcedx-vscode/issues/2650,1,github,0.5869,7,6,2022-03-25,closed,Anecdotal,0.062
+186,ECONNRESET - Error: aborted,https://github.com/jsforce/jsforce/issues/1225,1,github,0.6573,8,5,2022-03-27,closed,Anecdotal,0.0618
+187,force:mdapi:deploy sees a cancelled deployment as a success,https://github.com/forcedotcom/cli/issues/37,1,github,0.2582,5,15,2021-07-16,closed,Anecdotal,0.0617
+188,"Don't modify eslint path automatically, don't automatically change user settings",https://github.com/forcedotcom/salesforcedx-vscode/issues/1394,1,github,0.6573,8,15,2020-02-20,closed,Anecdotal,0.0615
+189,Unhandled rejection Error: getaddrinfo ENOTFOUND ,https://github.com/forcedotcom/cli/issues/966,1,github,0.2582,5,14,2021-08-25,closed,Anecdotal,0.061
+190,Ability to retrieve Test Report on deploy commands,https://github.com/forcedotcom/cli/issues/1089,1,github,0.2582,5,10,2022-06-22,closed,Anecdotal,0.06
+191,Webpack bundler gives critical warning about: Dependency is an expression ,https://github.com/forcedotcom/cli/issues/2204,1,github,0.2582,5,5,2023-06-22,closed,Anecdotal,0.0599
+192,force:auth:jwt:grant / force:mdapi:deploy failing in 7.88.4 / 51.0.4 - FILE HAS NO CONTENT,https://github.com/forcedotcom/cli/issues/867,1,github,0.2582,5,14,2021-03-09,closed,Anecdotal,0.0591
+193,"force:apex:execute on salesforce cli 7.73.1-67933dd254 returning ""Error: Cannot find module './tests'""",https://github.com/forcedotcom/cli/issues/599,1,github,0.5869,7,11,2020-09-10,closed,Anecdotal,0.0577
+194,New Assert class unresolved,https://github.com/forcedotcom/salesforcedx-vscode/issues/4586,1,github,0.2582,5,5,2023-04-21,closed,Anecdotal,0.0572
+195,"Error running force:data:tree:import:  no schema with key or ref ""http://json-schema.org/draft-04/schema#""",https://github.com/forcedotcom/cli/issues/1493,1,github,0.2582,5,9,2022-05-10,closed,Anecdotal,0.0571
+196,New test level for metadata deploy - RunTestSuite,https://github.com/forcedotcom/cli/issues/9,1,github,0.2582,5,10,2022-01-28,closed,Anecdotal,0.0571
+197,add the --purgeOnDelete flag to the force:mdapi:deploy command,https://github.com/forcedotcom/cli/issues/225,1,github,0.5869,7,1,2023-02-13,closed,Anecdotal,0.0567
+198,Deployment Problems,https://github.com/forcedotcom/cli/issues/942,1,github,0.8357,13,4,2021-10-14,closed,Moderate,0.0564
+199,Webserver not responding - force:web:auth:login on Linux,https://github.com/forcedotcom/cli/issues/783,1,github,0.2582,5,12,2021-03-04,closed,Anecdotal,0.0562
+200,Org Create fails with Unrecognized option: cookiesAllowAllPaths,https://github.com/forcedotcom/cli/issues/1323,1,github,0.2582,5,9,2022-01-03,closed,Anecdotal,0.0548
+201,sfdx force: package:version:promote - add validate only option,https://github.com/forcedotcom/cli/issues/1571,1,github,0.2582,5,3,2023-08-01,closed,Anecdotal,0.0537
+202,"Ability to disable ""Updating source tracking"" for CI/CD",https://github.com/forcedotcom/cli/issues/558,1,github,0.2582,5,7,2022-06-21,closed,Anecdotal,0.0536
+203,Deployment errors not shown after upgrade to 7.43.1,https://github.com/forcedotcom/cli/issues/283,1,github,0.4178,6,11,2020-02-25,closed,Anecdotal,0.0536
+204,Apex Code Coverage Updates for apex:test:run and apex:test:report commands,https://github.com/forcedotcom/salesforcedx-vscode/issues/2224,1,github,0.5869,7,7,2021-04-13,closed,Anecdotal,0.0535
+205,source tracking commands beta,https://github.com/forcedotcom/cli/issues/1258,1,github,0.9765,25,1,2022-04-01,closed,Moderate,0.0528
+206,Vulnerability: csv-parse - Regular Expression Denial of Service,https://github.com/jsforce/jsforce/issues/925,1,github,0.9718,24,8,2020-02-09,closed,Moderate,0.0527
+207,Expose all @wire configurations on the element instance in non-prod modes,https://github.com/salesforce/lwc/issues/1902,1,github,0.2582,5,5,2022-11-05,closed,Anecdotal,0.0514
+208,Deploy/retrieve individual components via metadata/tooling API,https://github.com/forcedotcom/salesforcedx-vscode/issues/488,1,github,0.7136,9,10,2018-08-21,closed,Anecdotal,0.0503
+209,The source:retrieve command does not behave the same for the all parameters,https://github.com/forcedotcom/cli/issues/45,1,github,0.9624,23,3,2021-05-20,closed,Moderate,0.0488
+210,Language Server support for Lightning Web Components Open Source,https://github.com/forcedotcom/salesforcedx-vscode/issues/1378,1,github,0.5869,7,8,2019-09-06,closed,Anecdotal,0.0479
+211,Add --codecoverage option to force:source:deploy command,https://github.com/forcedotcom/cli/issues/447,1,github,0.4178,6,1,2023-04-06,closed,Anecdotal,0.0474
+212,Deploy on Save,https://github.com/forcedotcom/salesforcedx-vscode/issues/577,1,github,0.5869,7,8,2019-02-28,closed,Anecdotal,0.0467
+213,Make force:source:status / pull compatible with multiple users in same org,https://github.com/forcedotcom/cli/issues/1085,1,github,0.2582,5,2,2023-06-26,closed,Anecdotal,0.0462
+214,Feature request: Bulk API 2.0 Query,https://github.com/forcedotcom/cli/issues/1223,1,github,0.2582,5,4,2022-08-11,closed,Anecdotal,0.0454
+215,Multi-line block comments do not insert an asterisk in Apex,https://github.com/forcedotcom/salesforcedx-vscode/issues/1469,1,github,0.2582,5,7,2020-02-02,closed,Anecdotal,0.0439
+216,export WireAdapter and WireAdapterConstructor,https://github.com/salesforce/lwc/issues/1909,1,github,0.4178,6,6,2020-06-26,closed,Anecdotal,0.0438
+217,SOQL Query Results View,https://github.com/forcedotcom/salesforcedx-vscode/issues/974,1,github,0.7887,11,3,2021-03-01,closed,Moderate,0.0426
+218,"Add sfdx force:org:clone -t ""Scratch Org"" for cloning Scratch Orgs without using Snapshots",https://github.com/forcedotcom/cli/issues/721,1,github,0.2582,5,2,2023-03-03,closed,Anecdotal,0.0414
+219,Custom Salesforce Templates,https://github.com/forcedotcom/salesforcedx-vscode/issues/784,1,github,0.5869,7,2,2021-11-19,closed,Anecdotal,0.0402
+220,Support for ARM M1 Mac within SFDX-CLI?,https://github.com/forcedotcom/cli/issues/768,1,github,0.5869,7,3,2021-04-28,closed,Anecdotal,0.04
+221,sfdx force:source:retrieve does not respect custom file path (not main/default),https://github.com/forcedotcom/cli/issues/238,1,github,0.2582,5,5,2020-11-17,closed,Anecdotal,0.0398
+222,Collapse all in tests panel,https://github.com/forcedotcom/salesforcedx-vscode/issues/1851,1,github,0.2582,5,1,2023-07-18,closed,Anecdotal,0.0391
+223,Reduce steps require to Launch Log-Replay Debugger from Tests & Anonymous apex,https://github.com/forcedotcom/salesforcedx-vscode/issues/1291,1,github,0.2582,5,3,2022-04-14,closed,Anecdotal,0.0383
+224,Typo in Spring '21 warning for Contacts to Multiple Accounts,https://github.com/forcedotcom/cli/issues/736,1,github,0.2582,5,3,2021-02-11,closed,Anecdotal,0.0324
+225,High Vulnerability issue reported by WhiteSource due to dependency : open-0.0.5.tgz,https://github.com/jsforce/jsforce/issues/772,1,github,0.2582,5,3,2019-02-04,closed,Anecdotal,0.0289
+226,Deprecated dependency (request) ,https://github.com/jsforce/jsforce/issues/1118,1,github,0.6573,8,1,2021-05-06,closed,Anecdotal,0.0279
+227,"Include namespace in ""sfdx force:org:display"" result",https://github.com/forcedotcom/cli/issues/422,1,github,0.2582,5,2,2021-03-22,closed,Anecdotal,0.027
+228,Implement a command to create a new Apex Class with Test template. ,https://github.com/forcedotcom/cli/issues/765,1,github,0.4178,6,1,2021-06-21,closed,Anecdotal,0.0236
+229,SourceDeployCommand return TypeError instead of Missing Metadata File,https://github.com/forcedotcom/cli/issues/658,1,github,0.6573,8,1,2020-10-22,closed,Anecdotal,0.0235
+230,Create & Template Experience Enhancements,https://github.com/forcedotcom/salesforcedx-vscode/issues/851,1,github,0.4178,6,1,2021-06-07,closed,Anecdotal,0.0233
+231,Help us test 3 new org commands ,https://github.com/forcedotcom/cli/issues/835,1,github,0.4178,6,1,2021-03-22,closed,Anecdotal,0.022
+232,The sfdx cli will unbundle the salesforce-alm (toolbelt) plugin on February 16th,https://github.com/forcedotcom/cli/issues/1945,1,github,0.2582,5,0,2023-03-29,closed,Anecdotal,0.0205
+233,Stop opening the output terminal every time there is a deploy on save,https://github.com/forcedotcom/salesforcedx-vscode/issues/1806,1,github,0.5869,7,1,2020-01-16,closed,Anecdotal,0.0189
+234,Is JSForce being actively maintained?,https://github.com/jsforce/jsforce/issues/885,1,github,0.6573,8,1,2019-05-28,closed,Anecdotal,0.0175
+235,jsforce relies on vulnerable version of `open` dependency,https://github.com/jsforce/jsforce/issues/751,1,github,0.5869,7,1,2018-06-19,closed,Anecdotal,0.0156
+236,Provide inline-edit props to lighting-datatable custom cell types,https://github.com/salesforce/lwc/issues/2231,1,github,0.6573,8,0,2021-02-09,open,Anecdotal,0.0119
+237,Salesforce VSCode Extensions team is hiring!,https://github.com/forcedotcom/salesforcedx-vscode/issues/3509,1,github,0.4178,6,0,2021-09-07,closed,Anecdotal,0.0113
+238,For custom commands help exits with Error: EEXIT: 0,https://github.com/forcedotcom/cli/issues/589,1,github,0.2582,5,0,2021-05-12,closed,Anecdotal,0.0056
