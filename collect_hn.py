@@ -17,14 +17,13 @@ Docs: https://hn.algolia.com/api
 
 from __future__ import annotations
 
-import html
-import re
 import time
 from datetime import datetime, timedelta, timezone
 
 import requests
 
 from common import (
+    clean_html,
     get_json,
     load_config,
     log,
@@ -40,15 +39,6 @@ SOURCE = "hackernews"
 
 def hn_item_url(object_id: str) -> str:
     return f"https://news.ycombinator.com/item?id={object_id}"
-
-
-_TAG = re.compile(r"<[^>]+>")
-
-
-def clean_html(text: str) -> str:
-    """Algolia returns story text as HTML. Keep the words, drop the tags."""
-    text = text.replace("<p>", "\n\n").replace("<br>", "\n")
-    return html.unescape(_TAG.sub("", text)).strip()
 
 
 def build_params(cfg: dict, query: str, since_ts: int, page: int, title_only: bool, more_than_points: int | None = None) -> dict:

@@ -8,6 +8,7 @@ Every collector imports from here so they all behave the same way.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
@@ -44,6 +45,27 @@ log = logging.getLogger("ppf")
 
 # Counts HTTP requests made through get_json, so a run can report "0 requests, all from cache".
 STATS = {"requests": 0}
+
+# Secret values (API keys sent as query parameters) that must never appear in a log line or an
+# error message. A collector adds its key here; redact() masks them in anything we print.
+SECRETS: set[str] = set()
+
+
+def redact(text: str) -> str:
+    for secret in SECRETS:
+        if secret:
+            text = text.replace(secret, "***")
+    return text
+
+
+_TAG = re.compile(r"<[^>]+>")
+
+
+def clean_html(text: str) -> str:
+    """Keep the words of an HTML fragment, drop the tags. Paragraphs and line breaks become newlines."""
+    text = re.sub(r"<br\s*/?>", "\n", text)
+    text = re.sub(r"</p>\s*<p>|<p>", "\n\n", text)
+    return html.unescape(_TAG.sub("", text)).strip()
 
 
 def setup_logging(level: int = logging.INFO) -> None:
@@ -188,9 +210,9 @@ def get_json(
             STATS["requests"] += 1
             resp = session.get(url, params=params, headers=hdrs, timeout=timeout)
         except requests.RequestException as e:
-            last_err = str(e)
+            last_err = redact(str(e))
             if not last_try:
-                log.warning("request failed (%s), retry %d/%d in %.0fs", e, attempt, max_tries, delay)
+                log.warning("request failed (%s), retry %d/%d in %.0fs", last_err, attempt, max_tries, delay)
                 time.sleep(delay)
                 delay = min(delay * 2, 60)
             continue
@@ -203,7 +225,7 @@ def get_json(
                 resp.status_code, remaining, wait, attempt, max_tries,
             )
             if attempt == max_tries:
-                raise RateLimited(f"gave up after {max_tries} tries: {resp.status_code} {resp.text[:200]}")
+                raise RateLimited(redact(f"gave up after {max_tries} tries: {resp.status_code} {resp.text[:200]}"))
             time.sleep(wait)
             delay = min(delay * 2, 60)
             continue
@@ -216,7 +238,11 @@ def get_json(
                 delay = min(delay * 2, 60)
             continue
 
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            # The default message carries the full URL, query string included. Re-raise without it.
+            raise requests.HTTPError(f"HTTP {resp.status_code} {resp.reason} from {url}", response=resp) from None
         return resp.json(), resp
 
     raise RuntimeError(f"gave up after {max_tries} tries: {last_err}")

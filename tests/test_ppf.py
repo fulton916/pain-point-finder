@@ -72,6 +72,12 @@ class FormattingTests(unittest.TestCase):
         self.assertIn("**Strong** · github + hackernews · 42 reactions · 7 comments · date 2026-03-04 · closed", md)
         self.assertIn("Something went wrong...", md)
 
+    def test_stack_exchange_comments_are_printed_as_answers(self):
+        r = self.result()
+        r["rows"][0]["best_source"] = "stackexchange"
+        r["rows"][0]["sources"] = "stackexchange"
+        self.assertIn("42 votes · 7 answers", ppf.format_md(r))
+
     def test_unit_follows_the_best_record_not_the_first_source(self):
         r = self.result()
         r["rows"][0]["best_source"] = "hackernews"
@@ -147,7 +153,20 @@ class RunSearchTests(unittest.TestCase):
         self.run_it(repos=["acme/x"])
         self.run_it(title_only=False)
         self.run_it(since_text="6m")
-        self.assertEqual(self.fake.calls, 4)
+        self.run_it(site="stackoverflow")
+        self.assertEqual(self.fake.calls, 5)
+
+    def test_attribution_is_printed_only_for_sources_that_need_it(self):
+        plain = self.run_it()
+        self.assertEqual(plain["meta"]["attribution"], [])
+        self.assertNotIn("CC BY-SA", ppf.format_md(plain))
+        self.fake.ATTRIBUTION = "Content from FakeSource, CC BY-SA."
+        try:
+            result = self.run_it(refresh=True)
+        finally:
+            del self.fake.ATTRIBUTION
+        self.assertEqual(result["meta"]["attribution"], ["Content from FakeSource, CC BY-SA."])
+        self.assertIn("Content from FakeSource, CC BY-SA.", ppf.format_md(result))
 
     def test_refresh_bypasses_cache(self):
         self.run_it()
