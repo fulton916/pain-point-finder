@@ -8,8 +8,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
+import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
@@ -37,9 +39,43 @@ USER_AGENT = "pain-point-finder (research tool)"
 
 log = logging.getLogger("ppf")
 
+# Counts HTTP requests made through get_json, so a run can report "0 requests, all from cache".
+STATS = {"requests": 0}
+
 
 def setup_logging(level: int = logging.INFO) -> None:
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+    # Windows consoles default to cp1252, which cannot print many titles (emoji, curly quotes).
+    # Switch stdout and stderr to UTF-8 so output never crashes on a character.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (ValueError, AttributeError):
+                pass
+    logging.basicConfig(
+        level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S", stream=sys.stderr
+    )
+
+
+_SINCE = re.compile(r"^(\d+)\s*([dwmy])$")
+
+
+def parse_since(text: str, now: datetime | None = None) -> datetime:
+    """'24m' = 24 months ago, '30d' days, '8w' weeks, '2y' years, or a YYYY-MM-DD date. Always UTC."""
+    now = now or datetime.now(timezone.utc)
+    s = (text or "").strip().lower()
+    m = _SINCE.match(s)
+    if m:
+        n, unit = int(m.group(1)), m.group(2)
+        if unit == "d":
+            return now - timedelta(days=n)
+        if unit == "w":
+            return now - timedelta(weeks=n)
+        return _shift_months(now, n * (12 if unit == "y" else 1))
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise ValueError(f"--since must look like 24m, 30d, 8w, 2y or YYYY-MM-DD, not {text!r}") from None
 
 
 def load_config(path: str | Path = "config.yaml") -> dict[str, Any]:
@@ -58,6 +94,15 @@ def env(name: str) -> str:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _shift_months(dt: datetime, months: int) -> datetime:
+    """Same day of month, `months` earlier; the day is clamped when that month is shorter."""
+    total = dt.year * 12 + (dt.month - 1) - months
+    year, month = divmod(total, 12)
+    month += 1
+    last_day = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
+    return dt.replace(year=year, month=month, day=min(dt.day, last_day))
 
 
 def make_record(**values: Any) -> dict[str, Any]:
@@ -137,6 +182,7 @@ def get_json(
     for attempt in range(1, max_tries + 1):
         last_try = attempt == max_tries
         try:
+            STATS["requests"] += 1
             resp = session.get(url, params=params, headers=hdrs, timeout=timeout)
         except requests.RequestException as e:
             last_err = str(e)

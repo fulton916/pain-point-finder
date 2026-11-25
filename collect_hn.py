@@ -1,10 +1,15 @@
-"""Collect Hacker News stories about the topic from the Algolia HN Search API.
+"""Hacker News source, via the Algolia HN Search API. No API key needed.
 
-No API key needed. Docs: https://hn.algolia.com/api
-Keeps stories with more than `more_than_points` points (default 50) in the last `months_back` months.
-Writes data/raw/hackernews.jsonl in the common record format.
+Two ways in:
+    search(session, cfg, query, since)   one question, returns records (used by ppf.py search)
+    python collect_hn.py                 sweep mode: every config keyword, writes data/raw/hackernews.jsonl
 
-Run:  python collect_hn.py
+Keeps stories with more than `more_than_points` points. When `title_only` is on (default), the
+query must match the story title, not just its text. Verified 2026-11-24: the API's
+restrictSearchableAttributes=title parameter works (180 hits for "salesforce" became 102, all
+with the word in the title).
+
+Docs: https://hn.algolia.com/api
 """
 
 from __future__ import annotations
@@ -43,24 +48,35 @@ def clean_html(text: str) -> str:
     return html.unescape(_TAG.sub("", text)).strip()
 
 
-def search(session: requests.Session, cfg: dict, query: str, since_ts: int) -> list[dict]:
-    """Return all hits for one query, walking every page."""
+def build_params(cfg: dict, query: str, since_ts: int, page: int, title_only: bool, more_than_points: int | None = None) -> dict:
+    hn = cfg["hacker_news"]
+    if more_than_points is None:
+        more_than_points = hn["more_than_points"]
+    params = {
+        "query": query,
+        "tags": hn["tags"],
+        "numericFilters": f"points>{more_than_points},created_at_i>={since_ts}",
+        "hitsPerPage": hn["hits_per_page"],
+        "page": page,
+    }
+    if title_only:
+        params["restrictSearchableAttributes"] = "title"
+    return params
+
+
+def fetch_hits(session: requests.Session, cfg: dict, query: str, since_ts: int, title_only: bool,
+               more_than_points: int | None = None) -> list[dict]:
+    """Return all raw hits for one query, walking every page."""
     hn = cfg["hacker_news"]
     hits: list[dict] = []
     page = 0
     while True:
-        params = {
-            "query": query,
-            "tags": hn["tags"],
-            "numericFilters": f"points>{hn['more_than_points']},created_at_i>={since_ts}",
-            "hitsPerPage": hn["hits_per_page"],
-            "page": page,
-        }
+        params = build_params(cfg, query, since_ts, page, title_only, more_than_points)
         data, _ = get_json(session, hn["endpoint"], params=params)
         page_hits = data.get("hits", [])
         hits.extend(page_hits)
         nb_pages = data.get("nbPages", 0)
-        log.info("query %r page %d/%d: %d hits", query, page + 1, nb_pages, len(page_hits))
+        log.info("hackernews %r page %d/%d: %d hits", query, page + 1, nb_pages, len(page_hits))
         page += 1
         if page >= nb_pages or not page_hits:
             break
@@ -90,22 +106,11 @@ def to_record(hit: dict, fetched_at: str) -> dict:
     )
 
 
-def main() -> None:
-    setup_logging()
-    cfg = load_config()
-    hn = cfg["hacker_news"]
-    since = datetime.now(timezone.utc) - timedelta(days=30.4375 * cfg["months_back"])
-    since_ts = int(since.timestamp())
-    fetched_at = now_iso()
-    queries = cfg["keywords"]
-
-    session = requests.Session()
+def hits_to_records(hits: list[dict], fetched_at: str) -> list[dict]:
+    """Dedupe by story id, validate, sort best first."""
     by_id: dict[str, dict] = {}
-    for q in queries:
-        for hit in search(session, cfg, q, since_ts):
-            by_id.setdefault(str(hit.get("objectID")), hit)
-        time.sleep(hn["delay_seconds"])
-
+    for hit in hits:
+        by_id.setdefault(str(hit.get("objectID")), hit)
     records = []
     bad = 0
     for hit in by_id.values():
@@ -117,10 +122,47 @@ def main() -> None:
             continue
         records.append(rec)
     records.sort(key=lambda r: (-(r["score"] or 0), r["url"]))
+    if bad:
+        log.warning("hackernews: %d invalid hits skipped", bad)
+    return records
+
+
+def search(session: requests.Session, cfg: dict, query: str, since: datetime, **options) -> list[dict]:
+    """One question in, validated records out. Options: title_only (bool, default from config)."""
+    hn = cfg["hacker_news"]
+    title_only = options.get("title_only")
+    if title_only is None:
+        title_only = bool(hn.get("title_only", True))
+    # A single question deserves a lower bar than the topic sweep: config search_more_than_points.
+    more_than = int(hn.get("search_more_than_points", hn["more_than_points"]))
+    hits = fetch_hits(session, cfg, query, int(since.timestamp()), title_only, more_than)
+    records = hits_to_records(hits, now_iso())
+    log.info("hackernews %r: %d records (title_only=%s, points>%d, since %s)", query, len(records), title_only, more_than, since.date())
+    return records
+
+
+def main() -> None:
+    setup_logging()
+    cfg = load_config()
+    hn = cfg["hacker_news"]
+    since = datetime.now(timezone.utc) - timedelta(days=30.4375 * cfg["months_back"])
+    queries = cfg["keywords"]
+
+    session = requests.Session()
+    fetched_at = now_iso()
+    title_only = bool(hn.get("title_only", True))
+    by_url: dict[str, dict] = {}
+    for q in queries:
+        # Sweep mode uses the topic bar (more_than_points), not the per-question one.
+        hits = fetch_hits(session, cfg, q, int(since.timestamp()), title_only)
+        for rec in hits_to_records(hits, fetched_at):
+            by_url.setdefault(rec["url"], rec)
+        time.sleep(hn["delay_seconds"])
+    records = sorted(by_url.values(), key=lambda r: (-(r["score"] or 0), r["url"]))
 
     out = f"{cfg['paths']['raw_dir']}/hackernews.jsonl"
     n = write_jsonl(out, records)
-    log.info("wrote %d records to %s (%d skipped, %d queries, since %s)", n, out, bad, len(queries), since.date())
+    log.info("wrote %d records to %s (%d queries, since %s)", n, out, len(queries), since.date())
 
 
 if __name__ == "__main__":

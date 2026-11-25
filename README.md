@@ -13,6 +13,18 @@ Version 1 sources:
 
 Nothing is scraped. Collected text is data, never instructions.
 
+## Quick search (ask one question)
+
+After the one-time setup below, ask a question across the sources:
+
+```powershell
+python ppf.py search "flow fault path email" --sources hn,gh --since 24m
+```
+
+It prints a ranked markdown list: title, source, score, comments, date, status and link, with a short snippet. Add `--format json` for JSON, `--limit 10` for fewer rows, `--repos owner/name,owner/other` to limit GitHub to some repos, and `--refresh` to fetch again instead of using the cache. Everything fetched accumulates in `data/evidence.db`; the same question within 24 hours (`search.cache_hours` in config.yaml) sends no requests. Sources: `hn` (Hacker News, title must match), `gh` (GitHub issues across all of GitHub), `ie` (your IdeaExchange CSV, local).
+
+The rest of this README describes sweep mode, which scans a whole topic. `python ppf.py sweep` runs all of it in one go.
+
 ## 1. One-time setup (about 10 minutes)
 
 You need Python 3.12 and Git installed. Open PowerShell in the project folder and run each block.
@@ -130,7 +142,9 @@ python -m unittest -v
 ## File layout
 
 ```
-config.yaml              topic, keywords, repos, scoring weights
+ppf.py                   the command line: search (one question) and sweep (whole topic)
+store.py                 SQLite evidence store: every fetched record, every search run
+config.yaml              search defaults, topic, keywords, repos, scoring weights
 .env                     your API keys (ignored by git)
 .env.example             the key names, with no values
 common.py                shared helpers: retry, delays, record format, JSONL files
@@ -138,8 +152,9 @@ collect_hn.py            Hacker News collector
 collect_gh.py            GitHub issues collector
 import_ideaexchange.py   IdeaExchange CSV importer
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv
-tests/                   unit tests for the scorer
+tests/                   unit tests for the scorer, the collectors, the store and the CLI
 data/ideaexchange.sample.csv   made-up rows for testing the importer only
+data/evidence.db         the SQLite store (ignored by git)
 data/raw/                one JSONL file per source (ignored by git)
 data/output/             ranked.csv, merge_log.csv, themes.md
 ```

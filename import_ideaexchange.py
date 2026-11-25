@@ -26,6 +26,7 @@ from common import (
     log,
     make_record,
     now_iso,
+    read_jsonl,
     setup_logging,
     validate_record,
     write_jsonl,
@@ -33,6 +34,30 @@ from common import (
 
 SOURCE = "ideaexchange"
 REQUIRED_COLUMNS = ["title", "url", "points", "votes", "status", "posted_date", "comments"]
+
+
+def search(session, cfg: dict, query: str, since, **options) -> list[dict]:
+    """Local search over the imported CSV (data/raw/ideaexchange.jsonl): every query word must
+    appear in the title. No network. Rows without a parseable date are kept (never guess)."""
+    from merge_and_score import parse_date  # local import: avoids a cycle at module load
+
+    path = ROOT / cfg["paths"]["raw_dir"] / "ideaexchange.jsonl"
+    if not path.exists():
+        log.warning("ideaexchange: %s not found; run import_ideaexchange.py first", path)
+        return []
+    words = [w for w in query.lower().split() if w]
+    records = []
+    for rec in read_jsonl(path):
+        title = (rec.get("title") or "").lower()
+        if not all(w in title for w in words):
+            continue
+        created = parse_date(rec.get("created_at"))
+        if created is not None and created < since:
+            continue
+        records.append(rec)
+    records.sort(key=lambda r: (-(r["score"] if r["score"] != "" else -1), r["url"]))
+    log.info("ideaexchange %r: %d records (local file)", query, len(records))
+    return records
 
 
 def to_int(value: str) -> int | str:

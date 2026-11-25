@@ -4,6 +4,10 @@
 # Raw collected data (large, regenerable)
 data/raw/
 
+# Local evidence store (SQLite)
+data/evidence.db
+data/*.db-journal
+
 # Python
 __pycache__/
 *.pyc
