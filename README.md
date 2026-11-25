@@ -118,16 +118,19 @@ python merge_and_score.py
 This writes two files to `data/output/`:
 
 - `ranked.csv`: one row per problem, best first. Columns: rank, title, best_url, source_count, sources, top_normalized_score, raw_score, comments, latest_activity, status, evidence_label, final_score.
-- `merge_log.csv`: every time two rows were treated as the same problem, with the reason. Check this if a "Strong" row looks wrong.
+- `merge_log.csv`: every time two rows were treated as the same problem, with the reason, plus every row removed by `scoring.drop_title_patterns` (reason `dropped_title_pattern`, the pattern in the `detail` column). Check this if a "Strong" row looks wrong or a row is missing.
 
 Running it twice on the same raw files gives the same ranking.
 
 ### How the score works
 
+0. **Drop.** Titles matching a pattern in `scoring.drop_title_patterns` (Show HN launches and the like) are removed first and logged.
 1. **Dedupe.** Same URL, or the same title after lowercasing and removing punctuation. Titles at least 25 characters long also merge at 95% similarity, but never if their numbers differ ("every 15 minutes" is not "every 30 minutes").
 2. **Normalize.** Each score becomes a percentile within its own source, because 100 GitHub reactions and 100 Hacker News points are not comparable.
-3. **Weight.** The percentile is halved for every 12 months since the last activity. Comments add a small bonus (at most 0.10). Each extra source adds 0.25.
+3. **Weight.** The percentile is halved for every 12 months since the last activity. Comments add a small bonus (at most 0.10). Each extra source adds 0.25. The total is then multiplied by the row's status weight from `scoring.status_weights` (a closed GitHub issue counts half by default; a Delivered IdeaExchange idea a quarter), so already-solved problems sink. The status itself is shown unchanged.
 4. **Label.** *Strong*: in 2+ sources, or top 10% of its source with activity in the last 24 months. *Moderate*: top 25% of its source. *Anecdotal*: everything else. Hacker News rows alone are capped at Moderate because most hits for this topic are news, not complaints.
+
+In **search mode** (`python ppf.py search`) one question returns too few rows for percentiles to mean anything, so the label uses the raw score against the source's own thresholds in `scoring.source_thresholds` instead: at or above `strong` (and active in the last 24 months) is Strong, at or above `moderate` is Moderate, else Anecdotal. 2+ sources is still Strong and the Hacker News cap still applies. The label is shown in bold at the start of each row.
 
 ## 5. Read the themes
 
