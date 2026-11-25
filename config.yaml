@@ -5,8 +5,8 @@
 
 # ---------- search mode: python ppf.py search "<question>" ----------
 search:
-  # Source short names: hn (Hacker News), gh (GitHub issues), ie (IdeaExchange CSV, local).
-  default_sources: [hn, gh]
+  # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), ie (IdeaExchange CSV, local).
+  default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
   # The same question within this many hours is answered from data/evidence.db, no requests sent.
@@ -40,6 +40,7 @@ paths:
   sources:
     - data/raw/hackernews.jsonl
     - data/raw/github.jsonl
+    - data/raw/stackexchange.jsonl
     - data/raw/ideaexchange.jsonl
 
 hacker_news:
@@ -85,6 +86,30 @@ github:
   # matches comments, which returned unrelated repos in the first live run (2026-11-24).
   search_in: title
 
+stackexchange:
+  # API v2.3 advanced search. Terms pasted and cleared 2026-11-25: attribution required (CC BY-SA),
+  # honor `backoff`, 10,000 requests/day per key, never more than 30 requests/second.
+  endpoint: https://api.stackexchange.com/2.3/search/advanced
+  # Which site. salesforce = salesforce.stackexchange.com. Search mode: --site overrides this.
+  site: salesforce
+  # Sweep mode: questions with a score below this are skipped.
+  min_score: 5
+  # Sweep mode: one query per tag (the site's tag names), or empty for the whole site's top questions.
+  sweep_tags: []
+  # Sweep mode: pages per query (pagesize questions each).
+  max_pages: 5
+  pagesize: 100
+  # Seconds between pages. The hard limit is 30 requests/second; 1 second keeps us far under it.
+  delay_seconds: 1.0
+  # How many characters of the question body to keep.
+  body_max_chars: 2000
+  # Search mode only. A single question keeps questions with a score of at least this. 0 keeps every
+  # title match (a question nobody upvoted is still a question somebody had; the label says Anecdotal).
+  search_min_score: 0
+  search_max_pages: 2
+  # Where the words must appear: title (default), or q (free text over every field; noisier).
+  search_in: title
+
 ideaexchange:
   csv_path: data/ideaexchange.csv
   # Clearly labeled made-up rows used only to test the importer.
@@ -121,6 +146,8 @@ scoring:
   source_thresholds:
     github:        {moderate: 5,   strong: 20}    # reactions
     hackernews:    {moderate: 50,  strong: 150}   # points
+    stackexchange: {moderate: 3,   strong: 8}     # question score (votes). Checked 2026-11-25: the top 100
+                                                  # salesforce.stackexchange.com questions of the last 24 months scored 2 to 9.
     ideaexchange:  {moderate: 100, strong: 500}   # votes (1 vote = 10 points)
   # ---- both modes ----
   # final_score is multiplied by the weight for the row's status (matched ignoring case).
@@ -130,7 +157,7 @@ scoring:
     default: 1.0
     closed: 0.5        # GitHub issue closed (fixed or declined)
     Delivered: 0.25    # IdeaExchange idea shipped
-    answered: 0.5      # Stack Exchange question with an accepted answer (future source)
+    answered: 0.5      # Stack Exchange question the API marks is_answered
   # Rows whose title matches any of these regular expressions are removed before dedupe,
   # in both modes. Matched anywhere in the title, ignoring case. Every drop is written to
   # merge_log.csv with reason dropped_title_pattern. A bad pattern stops the run.

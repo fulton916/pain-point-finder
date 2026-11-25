@@ -5,9 +5,14 @@
 
 import unittest
 from datetime import datetime, timezone
+from unittest import mock
+
+import requests
 
 import collect_gh
 import collect_hn
+import collect_se
+import common
 from common import FIELDS, validate_record
 
 HN_HIT = {
@@ -110,6 +115,121 @@ class GitHubTests(unittest.TestCase):
     def test_items_to_records_dedupes_by_url(self):
         records = collect_gh.items_to_records([GH_ITEM, dict(GH_ITEM)], "2026-11-24T00:00:00+00:00", 2000)
         self.assertEqual(len(records), 1)
+
+
+SE_ITEM = {
+    "question_id": 424242,
+    "link": "https://salesforce.stackexchange.com/questions/424242/flow-fault-email-goes-to-the-wrong-user",
+    "title": "Flow fault email goes to the &quot;wrong&quot; user",
+    "body": "<p>When a <b>Flow</b> fails &amp; the fault email arrives,</p><p>it goes to the last modifier.</p>",
+    "score": 7,
+    "answer_count": 3,
+    "view_count": 1234,
+    "creation_date": 1735689600,       # 2025-01-01T00:00:00Z
+    "last_activity_date": 1767225600,  # 2026-01-01T00:00:00Z
+    "is_answered": True,
+    "tags": ["flow", "email"],
+}
+
+SE_CFG = {
+    "stackexchange": {
+        "endpoint": "https://api.stackexchange.com/2.3/search/advanced",
+        "site": "salesforce", "pagesize": 100, "delay_seconds": 0, "body_max_chars": 2000,
+        "search_min_score": 0, "search_max_pages": 3, "search_in": "title",
+    }
+}
+
+
+class StackExchangeTests(unittest.TestCase):
+    def setUp(self):
+        collect_se.BACKOFF_UNTIL.clear()
+
+    def test_to_record_maps_the_api_fields(self):
+        rec = collect_se.to_record(SE_ITEM, "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual(list(rec), FIELDS)
+        self.assertEqual(validate_record(rec), [])
+        self.assertEqual(rec["source"], "stackexchange")
+        self.assertEqual(rec["url"], SE_ITEM["link"])
+        self.assertEqual(rec["title"], 'Flow fault email goes to the "wrong" user')
+        self.assertEqual(rec["body"], "When a Flow fails & the fault email arrives,\n\nit goes to the last modifier.")
+        self.assertEqual(rec["score"], 7)
+        self.assertEqual(rec["comments"], 3)       # answer_count
+        self.assertEqual(rec["views"], 1234)       # view_count
+        self.assertEqual(rec["created_at"], "2025-01-01T00:00:00+00:00")
+        self.assertEqual(rec["last_activity"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(rec["status"], "answered")
+
+    def test_unanswered_question_has_empty_status_and_missing_dates_stay_empty(self):
+        item = dict(SE_ITEM, is_answered=False)
+        del item["last_activity_date"]
+        rec = collect_se.to_record(item, "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual(rec["status"], "")
+        self.assertEqual(rec["last_activity"], "")
+
+    def test_body_is_truncated(self):
+        item = dict(SE_ITEM, body="<p>" + "y" * 5000 + "</p>")
+        self.assertEqual(len(collect_se.to_record(item, "2026-11-25T00:00:00+00:00", 2000)["body"]), 2000)
+
+    def test_build_params_title_sort_by_votes_and_since(self):
+        since = datetime(2024, 11, 25, tzinfo=timezone.utc)
+        p = collect_se.build_params(SE_CFG, "flow  fault email", since, 2, "salesforce", 3)
+        self.assertEqual(p["title"], "flow fault email")
+        self.assertNotIn("q", p)
+        self.assertEqual((p["site"], p["sort"], p["order"], p["min"], p["page"]), ("salesforce", "votes", "desc", 3, 2))
+        self.assertEqual(p["fromdate"], int(since.timestamp()))
+        self.assertEqual(p["filter"], "withbody")
+        free = collect_se.build_params(SE_CFG, "flow", None, 1, "stackoverflow", 0, search_in="q", tagged="apex")
+        self.assertEqual((free["q"], free["tagged"], free["site"]), ("flow", "apex", "stackoverflow"))
+        self.assertNotIn("title", free)
+        self.assertNotIn("fromdate", free)
+
+    def test_items_to_records_dedupes_by_url_and_sorts(self):
+        low = dict(SE_ITEM, link="https://salesforce.stackexchange.com/questions/1/a", score=1)
+        records = collect_se.items_to_records([low, SE_ITEM, dict(SE_ITEM)], "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual([r["score"] for r in records], [7, 1])
+
+    def test_backoff_is_honored_before_the_next_request(self):
+        pages = [
+            ({"items": [SE_ITEM], "has_more": True, "backoff": 7, "quota_remaining": 500, "quota_max": 10000}, None),
+            ({"items": [dict(SE_ITEM, link="https://salesforce.stackexchange.com/questions/2/b")], "has_more": False}, None),
+        ]
+        slept = []
+        with mock.patch.object(collect_se, "get_json", side_effect=pages), \
+             mock.patch.object(collect_se.time, "sleep", side_effect=slept.append), \
+             mock.patch.object(collect_se, "key_param", return_value={}):
+            items = collect_se.fetch_items(object(), SE_CFG, "flow", None, "salesforce", 0, 3)
+        self.assertEqual(len(items), 2)
+        self.assertTrue(any(6 <= s <= 7 for s in slept), f"expected a ~7s backoff wait, slept {slept}")
+
+    def test_quota_used_up_stops_paging(self):
+        pages = [({"items": [SE_ITEM], "has_more": True, "quota_remaining": 0, "quota_max": 10000}, None)]
+        with mock.patch.object(collect_se, "get_json", side_effect=pages) as gj, \
+             mock.patch.object(collect_se.time, "sleep"), \
+             mock.patch.object(collect_se, "key_param", return_value={}):
+            collect_se.fetch_items(object(), SE_CFG, "flow", None, "salesforce", 0, 3)
+        self.assertEqual(gj.call_count, 1)
+
+    def test_api_error_uses_the_body_message_not_the_url(self):
+        resp = mock.Mock()
+        resp.json.return_value = {"error_id": 502, "error_name": "throttle_violation", "error_message": "too many requests"}
+        err = collect_se.api_error(requests.HTTPError("HTTP 400 for url: https://x/?key=SECRET", response=resp))
+        self.assertIn("throttle_violation 502: too many requests", str(err))
+        self.assertNotIn("SECRET", str(err))
+
+    def test_key_is_sent_as_a_parameter_and_registered_as_a_secret(self):
+        with mock.patch.dict("os.environ", {"STACKEXCHANGE_KEY": "abc123key"}):
+            self.assertEqual(collect_se.key_param(), {"key": "abc123key"})
+        self.assertIn("abc123key", common.SECRETS)
+        self.assertEqual(common.redact("url?key=abc123key&site=x"), "url?key=***&site=x")
+        common.SECRETS.discard("abc123key")
+
+    def test_search_uses_the_config_site_unless_an_option_overrides_it(self):
+        since = datetime(2024, 11, 25, tzinfo=timezone.utc)
+        with mock.patch.object(collect_se, "fetch_items", return_value=[SE_ITEM]) as fi:
+            collect_se.search(object(), SE_CFG, "flow", since)
+            self.assertEqual(fi.call_args.args[4], "salesforce")
+            collect_se.search(object(), SE_CFG, "flow", since, site="stackoverflow")
+            self.assertEqual(fi.call_args.args[4], "stackoverflow")
 
 
 if __name__ == "__main__":

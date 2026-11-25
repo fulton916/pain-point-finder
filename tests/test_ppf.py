@@ -147,7 +147,20 @@ class RunSearchTests(unittest.TestCase):
         self.run_it(repos=["acme/x"])
         self.run_it(title_only=False)
         self.run_it(since_text="6m")
-        self.assertEqual(self.fake.calls, 4)
+        self.run_it(site="stackoverflow")
+        self.assertEqual(self.fake.calls, 5)
+
+    def test_attribution_is_printed_only_for_sources_that_need_it(self):
+        plain = self.run_it()
+        self.assertEqual(plain["meta"]["attribution"], [])
+        self.assertNotIn("CC BY-SA", ppf.format_md(plain))
+        self.fake.ATTRIBUTION = "Content from FakeSource, CC BY-SA."
+        try:
+            result = self.run_it(refresh=True)
+        finally:
+            del self.fake.ATTRIBUTION
+        self.assertEqual(result["meta"]["attribution"], ["Content from FakeSource, CC BY-SA."])
+        self.assertIn("Content from FakeSource, CC BY-SA.", ppf.format_md(result))
 
     def test_refresh_bypasses_cache(self):
         self.run_it()

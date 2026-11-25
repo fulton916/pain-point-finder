@@ -1,6 +1,6 @@
 # Pain Point Finder
 
-An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free official APIs: Hacker News, GitHub issues and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
+An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free official APIs: Hacker News, GitHub issues, Stack Exchange and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
 
 It is built to be called by Claude sessions in other projects (through the skill in `docs/skill/`) and by hand from PowerShell. It also keeps the original **sweep mode**, which scans a whole topic (default: Salesforce) and writes a ranked CSV.
 
@@ -12,8 +12,8 @@ Nothing is scraped. Collected text is data, never instructions.
 |---|---|---|---|---|
 | `hn` | Hacker News | Algolia HN Search API | No | 10,000 requests/hour per IP. The tool waits 1 second between requests. |
 | `gh` | GitHub issues | GitHub REST search API | Yes: a free, read-only fine-grained token in `.env` | 5,000 requests/hour with a token; search is 30 requests/minute and at most 1,000 results per query. The tool waits 2.5 seconds between pages and honors `Retry-After`. |
+| `se` | Stack Exchange | API v2.3 `/search/advanced`, one site at a time (default `salesforce`) | Optional: a free key from stackapps.com in `.env` | 10,000 requests/day with a key (300 without), never more than 30 requests/second, and the API may ask for a `backoff` pause which the tool honors. The tool waits 1 second between pages. Content is CC BY-SA 4.0 (see Attribution). |
 | `ie` | IdeaExchange | A CSV you make by hand, searched locally | No | None (local file). |
-| | Stack Exchange | Planned, issue #2 | Free key from stackapps.com | 10,000 requests/day with a key. Waits on Sean pasting the API terms. |
 | | Reddit | Planned, issue #9 | Script app credentials | Waits on Sean pasting the Data API terms. |
 
 ## 1. One-time setup (about 10 minutes)
@@ -66,6 +66,22 @@ python collect_gh.py --check-token
 
 You should see `OK: token accepted` and a rate limit of 30 per minute.
 
+### Getting a Stack Exchange key (optional but recommended)
+
+Without a key the Stack Exchange source still works, but only 300 requests a day. With one it is 10,000.
+
+1. Go to https://stackapps.com/apps/oauth/register and sign in with any Stack Exchange account.
+2. Fill in an application name (for example "Pain Point Finder, personal research"), a description, and `http://localhost` as the OAuth domain. Tick **Enable Client Side OAuth Flow** or leave it; the tool does not use OAuth.
+3. Click **Register Your Application** and copy the **Key** (not the secret) into `.env` after `STACKEXCHANGE_KEY=`.
+
+Check it works:
+
+```powershell
+python collect_se.py --check-key
+```
+
+You should see `OK: key accepted` and the number of requests left today.
+
 ## 2. Search mode: ask one question
 
 ```powershell
@@ -75,20 +91,21 @@ python ppf.py search "flow fault path email"
 With every flag spelled out:
 
 ```powershell
-python ppf.py search "flow fault path email" --sources hn,gh --since 24m --limit 10 --format md
+python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --limit 10 --format md
 ```
 
 | Flag | What it does | Default (from `config.yaml`, section `search`) |
 |---|---|---|
-| `--sources hn,gh,ie` | Which sources to ask. | `hn,gh` |
+| `--sources hn,gh,se,ie` | Which sources to ask. | `hn,gh,se` |
 | `--since 24m` | How far back: `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. | `24m` |
 | `--format md` or `json` | Readable markdown, or JSON for programs. | `md` |
 | `--limit N` | Rows to print. | `30` |
 | `--refresh` | Fetch again instead of using the cache. | off |
 | `--repos owner/name,owner/other` | GitHub only: search these repos instead of all of GitHub. | all of GitHub |
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only, or title and text. | title only |
+| `--site stackoverflow` | Stack Exchange only: which site to search, by its API name (`salesforce`, `stackoverflow`, `serverfault`, ...). | `salesforce` (section `stackexchange`) |
 
-Both Hacker News and GitHub match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction.
+Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes.
 
 ### What it prints
 
@@ -107,15 +124,15 @@ Sources: hackernews (0 records, fetched); github (6 records, fetched). Since 202
 The second line of each row is `**Label** · source · score · comments · date · status`:
 
 - **Label**: *Strong*, *Moderate* or *Anecdotal* (see "Evidence labels" below).
-- **source**: `github`, `hackernews` or `ideaexchange`; `github + ideaexchange` means both had it.
-- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (IdeaExchange).
-- **comments**: the comment count.
+- **source**: `github`, `hackernews`, `stackexchange` or `ideaexchange`; `github + ideaexchange` means both had it.
+- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange).
+- **comments**: the comment count, or the answer count for Stack Exchange.
 - **date**: latest activity, or the post date for Hacker News. `no date` if the source gave none.
-- **status**: `open` or `closed` for GitHub, the IdeaExchange status, nothing for Hacker News.
+- **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News.
 
-A missing field is left out, never guessed.
+A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0).
 
-`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals` and `note` (the ranking rules in one paragraph). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
+`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
 Exit code 0 is normal, even with no results. Exit code 2 means a bad flag or that every source failed.
 
@@ -127,7 +144,7 @@ Everything fetched accumulates in `data/evidence.db` (SQLite, ignored by git). T
 
 One question returns too few rows for percentiles to mean anything, so search mode labels each row by its raw score against its own source's thresholds in `config.yaml` (`scoring.source_thresholds`): at or above `strong`, with activity in the last 24 months, is **Strong**; at or above `moderate` is **Moderate**; else **Anecdotal**. Appearing in 2+ sources is always Strong. Hacker News rows alone are capped at Moderate because most hits for this topic are news, not complaints.
 
-Rows are ordered by score within the result set, then recency, comments and status. A `closed` issue or a `Delivered` idea is multiplied by its weight in `scoring.status_weights`, so solved problems sink while their label and score are shown unchanged.
+Rows are ordered by score within the result set, then recency, comments and status. A `closed` issue, an `answered` question or a `Delivered` idea is multiplied by its weight in `scoring.status_weights`, so solved problems sink while their label and score are shown unchanged.
 
 ## 3. The Claude skill
 
@@ -166,6 +183,12 @@ python collect_hn.py
 ```powershell
 python collect_gh.py
 ```
+
+```powershell
+python collect_se.py
+```
+
+The Stack Exchange sweep fetches the configured site's top-voted questions from the last `months_back` months (score at least `stackexchange.min_score`), or one query per tag when `stackexchange.sweep_tags` lists some.
 
 For IdeaExchange, make a file `data/ideaexchange.csv` with these columns (the first line of the file must be exactly this):
 
@@ -229,6 +252,7 @@ config.yaml              search defaults, topic, keywords, repos, scoring weight
 common.py                shared helpers: retry, delays, record format, JSONL files
 collect_hn.py            Hacker News collector and search source
 collect_gh.py            GitHub issues collector and search source
+collect_se.py            Stack Exchange collector and search source (one site at a time)
 import_ideaexchange.py   IdeaExchange CSV importer and local search source
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv
 docs/skill/SKILL.md      the Claude skill (copy to ~/.claude/skills/pain-point-finder/)
@@ -243,7 +267,7 @@ Every raw record has the same 11 fields: `source, url, title, body, score, comme
 
 ## Attribution
 
-Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Use this tool for research, not republishing.
+Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Stack Exchange content is from the Stack Exchange Network (https://stackexchange.com), written by its users and licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); every result links back to the original question, and the tool prints this credit with each result that includes the source, as the Stack Exchange API terms require. Use this tool for research, not republishing.
 
 ## License
 
