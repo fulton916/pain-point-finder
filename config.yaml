@@ -5,7 +5,8 @@
 
 # ---------- search mode: python ppf.py search "<question>" ----------
 search:
-  # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), ie (IdeaExchange CSV, local).
+  # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), rd (Reddit via the
+  # Arctic Shift archive; not in the default list because its scores are stale), ie (IdeaExchange CSV, local).
   default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
@@ -41,6 +42,7 @@ paths:
     - data/raw/hackernews.jsonl
     - data/raw/github.jsonl
     - data/raw/stackexchange.jsonl
+    - data/raw/reddit.jsonl
     - data/raw/ideaexchange.jsonl
 
 hacker_news:
@@ -110,6 +112,39 @@ stackexchange:
   # Where the words must appear: title (default), or q (free text over every field; noisier).
   search_in: title
 
+reddit:
+  # Arctic Shift, a third-party archive of Reddit (github.com/ArthurHeitmann/arctic_shift). No key, no
+  # published terms, no uptime promise; may stop after Reddit's public API closes in March 2027.
+  # Reddit's own Data API stopped taking new apps on 2026-10-31 (issue #9).
+  endpoint: https://arctic-shift.photon-reddit.com/api/posts/search
+  # Keyword search only works inside a subreddit, so each question is asked once per subreddit here.
+  # Search mode: --subreddits overrides this list.
+  subreddits:
+    - salesforce
+    - SalesforceDeveloper
+    - salesforceadmin
+  # Fields to ask for. The archive answers 422 "Timeout" when no field list is sent.
+  fields: [id, subreddit, title, selftext, url, score, num_comments, created_utc, retrieved_on]
+  # Posts per subreddit per request, newest first (the API sorts by date only). Max 100.
+  search_limit: 100
+  sweep_limit: 100
+  # Search mode: keep posts with a score of at least this. 0 keeps every match.
+  search_min_score: 0
+  # Sweep mode: posts below this score are skipped.
+  min_score: 5
+  # Seconds between subreddits. Measured 2026-11-25: a 100-post request with text is answered in about
+  # 4 seconds, then the archive refuses further requests for a while with 422 "Timeout. Maybe slow down
+  # a bit" (back in under a second, so it is a throttle). Five seconds between subreddits plus the
+  # retry pauses below got every subreddit answered in the live runs.
+  delay_seconds: 5.0
+  # A 422 "Timeout" answer is retried this many times, pausing timeout_pause_seconds (doubling each
+  # time: 10, 20, 40), then that subreddit is skipped with a warning. Worst case about 70 seconds per
+  # subreddit; the 24-hour cache means a question pays that once.
+  timeout_retries: 3
+  timeout_pause_seconds: 10
+  # How many characters of the post text to keep.
+  body_max_chars: 2000
+
 ideaexchange:
   csv_path: data/ideaexchange.csv
   # Clearly labeled made-up rows used only to test the importer.
@@ -137,6 +172,9 @@ scoring:
   # Hacker News hits for this topic were mostly news stories, not complaints.
   label_caps:
     hackernews: Moderate
+    # Arctic Shift scores are usually the score at posting time (retrieved seconds after creation),
+    # so a Reddit row alone never counts as Strong.
+    reddit: Moderate
   # ---- search mode only: labels from raw score thresholds, not percentiles ----
   # One question's results are too few for percentiles to mean anything, so search mode
   # labels a row by its raw score against its own source: at or above `strong` (with
@@ -149,6 +187,8 @@ scoring:
     stackexchange: {moderate: 3,   strong: 8}     # question score (votes). Checked 2026-11-25: the top 100
                                                   # salesforce.stackexchange.com questions of the last 24 months scored 2 to 9.
     ideaexchange:  {moderate: 100, strong: 500}   # votes (1 vote = 10 points)
+    reddit:        {moderate: 10,  strong: 50}    # archived score. Checked 2026-11-25: the newest 100 "flow" posts in
+                                                  # r/salesforce (24 months) had p75 = 7, p90 = 32, max 195.
   # ---- both modes ----
   # final_score is multiplied by the weight for the row's status (matched ignoring case).
   # A problem the vendor already solved is less worth building for, so it sinks. The status

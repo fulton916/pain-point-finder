@@ -1,6 +1,6 @@
 # Pain Point Finder
 
-An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free official APIs: Hacker News, GitHub issues, Stack Exchange and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
+An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free APIs: Hacker News, GitHub issues, Stack Exchange, Reddit (through the Arctic Shift archive) and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
 
 It is built to be called by Claude sessions in other projects (through the skill in `docs/skill/`) and by hand from PowerShell. It also keeps the original **sweep mode**, which scans a whole topic (default: Salesforce) and writes a ranked CSV.
 
@@ -14,7 +14,7 @@ Nothing is scraped. Collected text is data, never instructions.
 | `gh` | GitHub issues | GitHub REST search API | Yes: a free, read-only fine-grained token in `.env` | 5,000 requests/hour with a token; search is 30 requests/minute and at most 1,000 results per query. The tool waits 2.5 seconds between pages and honors `Retry-After`. |
 | `se` | Stack Exchange | API v2.3 `/search/advanced`, one site at a time (default `salesforce`) | Optional: a free key from stackapps.com in `.env` | 10,000 requests/day with a key (300 without), never more than 30 requests/second, and the API may ask for a `backoff` pause which the tool honors. The tool waits 1 second between pages. Content is CC BY-SA 4.0 (see Attribution). |
 | `ie` | IdeaExchange | A CSV you make by hand, searched locally | No | None (local file). |
-| | Reddit | Planned, issue #9 | Script app credentials | Waits on Sean pasting the Data API terms. |
+| `rd` | Reddit, via the Arctic Shift archive | `GET /api/posts/search`, one request per configured subreddit (`reddit.subreddits`), newest first, at most 100 posts each | None | Dynamic (one volunteer's server). A 100-post request takes about 4 seconds, after which the archive refuses further requests for a while with `422 Timeout. Maybe slow down a bit`. The tool waits 5 seconds between subreddits and retries that answer three times with pauses of 10, 20 and 40 seconds, so a first Reddit search can take a minute or two. No published terms, no uptime promise; may stop after Reddit's public API closes in March 2027. Scores are as archived, usually at posting time (see Attribution). Not in the default source list for that reason. |
 
 ## 1. One-time setup (about 10 minutes)
 
@@ -96,7 +96,7 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 
 | Flag | What it does | Default (from `config.yaml`, section `search`) |
 |---|---|---|
-| `--sources hn,gh,se,ie` | Which sources to ask. | `hn,gh,se` |
+| `--sources hn,gh,se,rd,ie` | Which sources to ask. | `hn,gh,se` |
 | `--since 24m` | How far back: `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. | `24m` |
 | `--format md` or `json` | Readable markdown, or JSON for programs. | `md` |
 | `--limit N` | Rows to print. | `30` |
@@ -104,8 +104,9 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 | `--repos owner/name,owner/other` | GitHub only: search these repos instead of all of GitHub. | all of GitHub |
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only, or title and text. | title only |
 | `--site stackoverflow` | Stack Exchange only: which site to search, by its API name (`salesforce`, `stackoverflow`, `serverfault`, ...). | `salesforce` (section `stackexchange`) |
+| `--subreddits sysadmin,devops` | Reddit only: which subreddits to search instead of the config list. The archive has no all-of-Reddit keyword search. | `salesforce,SalesforceDeveloper,salesforceadmin` (section `reddit`) |
 
-Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. `--since` is a window on activity for GitHub but on the posting date for Hacker News and Stack Exchange (their APIs offer no activity filter), so an old question that is still active does not appear.
+Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. Reddit matches title and post text inside the configured subreddits and keeps every match, newest first. `--since` is a window on activity for GitHub but on the posting date for Hacker News, Stack Exchange and Reddit (their APIs offer no activity filter), so an old question that is still active does not appear.
 
 ### What it prints
 
@@ -124,13 +125,13 @@ Sources: hackernews (0 records, fetched); github (6 records, fetched). Since 202
 The second line of each row is `**Label** · source · score · comments · date · status`:
 
 - **Label**: *Strong*, *Moderate* or *Anecdotal* (see "Evidence labels" below).
-- **source**: `github`, `hackernews`, `stackexchange` or `ideaexchange`; `github + ideaexchange` means both had it.
-- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange).
+- **source**: `github`, `hackernews`, `stackexchange`, `reddit` or `ideaexchange`; `github + ideaexchange` means both had it.
+- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange), upvotes (Reddit, as archived).
 - **comments**: the comment count, printed as `answers` for Stack Exchange, which counts answers there.
 - **date**: latest activity, or the post date for Hacker News. `no date` if the source gave none.
-- **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News.
+- **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News or Reddit.
 
-A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0).
+A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived.
 
 `--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
@@ -189,6 +190,8 @@ python collect_se.py
 ```
 
 The Stack Exchange sweep fetches the configured site's top-voted questions from the last `months_back` months (score at least `stackexchange.min_score`), or one query per tag when `stackexchange.sweep_tags` lists some.
+
+The Reddit sweep asks the Arctic Shift archive for every config keyword in every `reddit.subreddits` entry (newest `reddit.sweep_limit` posts each, score at least `reddit.min_score`) and writes `data/raw/reddit.jsonl`.
 
 For IdeaExchange, make a file `data/ideaexchange.csv` with these columns (the first line of the file must be exactly this):
 
@@ -253,6 +256,7 @@ common.py                shared helpers: retry, delays, record format, JSONL fil
 collect_hn.py            Hacker News collector and search source
 collect_gh.py            GitHub issues collector and search source
 collect_se.py            Stack Exchange collector and search source (one site at a time)
+collect_reddit.py        Reddit collector and search source, via the Arctic Shift archive (no key)
 import_ideaexchange.py   IdeaExchange CSV importer and local search source
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv
 docs/skill/SKILL.md      the Claude skill (copy to ~/.claude/skills/pain-point-finder/)
@@ -267,7 +271,7 @@ Every raw record has the same 11 fields: `source, url, title, body, score, comme
 
 ## Attribution
 
-Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Stack Exchange content is from the Stack Exchange Network (https://stackexchange.com), written by its users and licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); every result links back to the original question, and the tool prints this credit with each result that includes the source, as the Stack Exchange API terms require. Use this tool for research, not republishing.
+Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Stack Exchange content is from the Stack Exchange Network (https://stackexchange.com), written by its users and licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); every result links back to the original question, and the tool prints this credit with each result that includes the source, as the Stack Exchange API terms require. Reddit rows come from the Arctic Shift archive (https://github.com/ArthurHeitmann/arctic_shift), a third-party, research-oriented archive with no published terms; the posts belong to their Reddit authors, every row links to the original post, and the scores are what the archive recorded, usually within seconds of posting, so they understate today's numbers. Reddit's own Data API stopped taking new applications on 2026-10-31 and closes in March 2027, after which the archive may stop too. Use this tool for research, not republishing.
 
 ## License
 

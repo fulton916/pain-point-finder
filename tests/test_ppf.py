@@ -39,7 +39,7 @@ class SourceParsingTests(unittest.TestCase):
 
     def test_unknown_source_raises(self):
         with self.assertRaises(ValueError):
-            ppf.parse_sources("hn,reddit")
+            ppf.parse_sources("hn,twitter")
 
 
 class FormattingTests(unittest.TestCase):
@@ -154,7 +154,8 @@ class RunSearchTests(unittest.TestCase):
         self.run_it(title_only=False)
         self.run_it(since_text="6m")
         self.run_it(site="stackoverflow")
-        self.assertEqual(self.fake.calls, 5)
+        self.run_it(subreddits=["sysadmin"])
+        self.assertEqual(self.fake.calls, 6)
 
     def test_attribution_is_printed_only_for_sources_that_need_it(self):
         plain = self.run_it()
