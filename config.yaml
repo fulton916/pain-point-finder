@@ -1,8 +1,22 @@
 # Pain Point Finder settings. Change the topic here, not in the code.
 
+# ---------- search mode: python ppf.py search "<question>" ----------
+search:
+  # Source short names: hn (Hacker News), gh (GitHub issues), ie (IdeaExchange CSV, local).
+  default_sources: [hn, gh]
+  # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
+  default_since: 24m
+  # The same question within this many hours is answered from data/evidence.db, no requests sent.
+  cache_hours: 24
+  # Rows printed.
+  limit: 30
+  # Characters of body text shown under each row.
+  snippet_chars: 160
+
+# ---------- sweep mode: python ppf.py sweep (the whole topic) ----------
 topic: Salesforce
 
-# Words that describe the topic. Used by the Hacker News search.
+# Words that describe the topic. Each one is a Hacker News search in sweep mode.
 keywords:
   - salesforce
   - "salesforce flow"
@@ -16,6 +30,8 @@ months_back: 24
 paths:
   raw_dir: data/raw
   output_dir: data/output
+  # SQLite file where every fetched record and every search run accumulates (gitignored).
+  store: data/evidence.db
   # Raw files that merge_and_score.py reads. Add a line here when a new collector exists.
   # The IdeaExchange sample file is NOT listed on purpose: made-up rows must never be ranked.
   sources:
@@ -29,6 +45,11 @@ hacker_news:
   more_than_points: 50
   # Only stories (not comments). Ask HN and Show HN posts count as stories.
   tags: story
+  # Match the query against the story title only, not the story text. Verified 2026-11-24
+  # with restrictSearchableAttributes=title: 180 hits for "salesforce" became 102.
+  title_only: true
+  # Search mode only: a single question keeps stories with MORE than this many points.
+  search_more_than_points: 10
   hits_per_page: 100
   # Stay well under the documented 10,000 requests/hour limit.
   delay_seconds: 1.0
@@ -53,6 +74,13 @@ github:
   delay_seconds: 2.5
   # How many characters of the issue body to keep.
   body_max_chars: 2000
+  # Search mode only. Empty list = all of GitHub. Each page is one request (30/minute with a token).
+  search_repos: []
+  search_min_reactions: 1
+  search_max_pages: 3
+  # Where the words must appear: title (default), or "title,body". Without this GitHub also
+  # matches comments, which returned unrelated repos in the first live run (2026-11-24).
+  search_in: title
 
 ideaexchange:
   csv_path: data/ideaexchange.csv
