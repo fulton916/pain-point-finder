@@ -109,8 +109,15 @@ def to_record(hit: dict, fetched_at: str) -> dict:
 def hits_to_records(hits: list[dict], fetched_at: str) -> list[dict]:
     """Dedupe by story id, validate, sort best first."""
     by_id: dict[str, dict] = {}
+    no_id = 0
     for hit in hits:
-        by_id.setdefault(str(hit.get("objectID")), hit)
+        object_id = hit.get("objectID")
+        if not object_id:
+            no_id += 1  # no id means no URL; never guess one
+            continue
+        by_id.setdefault(str(object_id), hit)
+    if no_id:
+        log.warning("hackernews: %d hits without objectID skipped", no_id)
     records = []
     bad = 0
     for hit in by_id.values():

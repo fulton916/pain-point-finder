@@ -51,6 +51,7 @@ class FormattingTests(unittest.TestCase):
             },
             "rows": [{
                 "rank": 1, "title": "Flow [beta] limits", "best_url": "https://github.com/a/b/issues/1",
+                "best_source": "github",
                 "source_count": 2, "sources": "github;hackernews", "top_normalized_score": 1.0, "raw_score": 42,
                 "comments": 7, "latest_activity": "2026-03-04", "status": "closed", "evidence_label": "Strong",
                 "final_score": 1.2, "snippet": "Something went wrong...",
@@ -68,6 +69,12 @@ class FormattingTests(unittest.TestCase):
         self.assertNotIn("Strong", md)
         self.assertIn("Something went wrong...", md)
 
+    def test_unit_follows_the_best_record_not_the_first_source(self):
+        r = self.result()
+        r["rows"][0]["best_source"] = "hackernews"
+        r["rows"][0]["raw_score"] = 300
+        self.assertIn("github + hackernews · 300 points", ppf.format_md(r))
+
     def test_markdown_with_no_rows(self):
         r = self.result()
         r["rows"] = []
@@ -80,6 +87,76 @@ class FormattingTests(unittest.TestCase):
     def test_snippet_collapses_whitespace_and_cuts(self):
         self.assertEqual(ppf.snippet("a  b\n\nc", 100), "a b c")
         self.assertEqual(ppf.snippet("abcdefghij", 8), "abcde...")
+
+
+class FakeSource:
+    """Stands in for a collector module: records SOURCE and a search() that counts calls."""
+    SOURCE = "fakesource"
+
+    def __init__(self, records, fail=False):
+        self.records, self.fail, self.calls = records, fail, 0
+
+    def search(self, session, cfg, query, since, **options):
+        self.calls += 1
+        if self.fail:
+            raise ValueError("boom")
+        return self.records
+
+
+class RunSearchTests(unittest.TestCase):
+    def setUp(self):
+        from common import load_config, make_record
+        from store import Store
+
+        self.cfg = load_config()
+        self.store = Store(":memory:")
+        self.rec = make_record(
+            source="fakesource", url="https://example.com/1", title="Flow limits hit", body="Body text here",
+            score=10, comments=2, created_at="2026-01-01T00:00:00Z", fetched_at="2026-11-24T00:00:00+00:00",
+        )
+        self.fake = FakeSource([self.rec])
+        ppf.SOURCES["fake"] = self.fake
+        ppf.UNITS["fakesource"] = "votes"
+
+    def tearDown(self):
+        ppf.SOURCES.pop("fake", None)
+        ppf.UNITS.pop("fakesource", None)
+        self.store.close()
+
+    def run_it(self, **kw):
+        args = dict(cfg=self.cfg, query="flow limits", sources=["fake"], since_text="24m", refresh=False,
+                    limit=10, repos=None, title_only=None, store=self.store, session=object())
+        args.update(kw)
+        return ppf.run_search(**args)
+
+    def test_first_run_fetches_second_run_uses_cache(self):
+        first = self.run_it()
+        second = self.run_it(query="Flow  LIMITS")
+        self.assertEqual(self.fake.calls, 1)
+        self.assertFalse(first["meta"]["per_source"]["fakesource"]["from_cache"])
+        self.assertTrue(second["meta"]["per_source"]["fakesource"]["from_cache"])
+        self.assertEqual(second["rows"][0]["best_url"], "https://example.com/1")
+        self.assertEqual(second["rows"][0]["best_source"], "fakesource")
+        self.assertEqual(second["rows"][0]["snippet"], "Body text here")
+
+    def test_different_options_do_not_share_a_cache(self):
+        self.run_it()
+        self.run_it(repos=["acme/x"])
+        self.run_it(title_only=False)
+        self.run_it(since_text="6m")
+        self.assertEqual(self.fake.calls, 4)
+
+    def test_refresh_bypasses_cache(self):
+        self.run_it()
+        self.run_it(refresh=True)
+        self.assertEqual(self.fake.calls, 2)
+
+    def test_source_error_is_reported_not_raised(self):
+        self.fake.fail = True
+        result = self.run_it()
+        self.assertEqual(result["rows"], [])
+        self.assertEqual(result["meta"]["per_source"]["fakesource"]["error"], "boom")
+        self.assertIn("fakesource (failed: boom)", ppf.format_md(result))
 
 
 if __name__ == "__main__":

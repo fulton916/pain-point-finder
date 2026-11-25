@@ -42,11 +42,11 @@ CREATE TABLE IF NOT EXISTS queries (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     query_key  TEXT NOT NULL,
     source     TEXT NOT NULL,
-    since      TEXT NOT NULL,
+    scope      TEXT NOT NULL,
     fetched_at TEXT NOT NULL,
     hit_count  INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS queries_lookup ON queries (query_key, source, since, fetched_at);
+CREATE INDEX IF NOT EXISTS queries_lookup ON queries (query_key, source, scope, fetched_at);
 CREATE TABLE IF NOT EXISTS query_hits (
     query_id INTEGER NOT NULL REFERENCES queries(id),
     source   TEXT NOT NULL,
@@ -107,10 +107,12 @@ class Store:
 
     # ---------- queries and cache ----------
 
-    def log_query(self, query: str, source: str, since: str, fetched_at: str, records: list[dict]) -> int:
+    def log_query(self, query: str, source: str, scope: str, fetched_at: str, records: list[dict]) -> int:
+        """`scope` is everything besides the words that changes the answer: the time window plus
+        per-source options such as a repo list. Two runs share a cache only when it matches."""
         cur = self.conn.execute(
-            "INSERT INTO queries (query_key, source, since, fetched_at, hit_count) VALUES (?, ?, ?, ?, ?)",
-            (query_key(query), source, since, fetched_at, len(records)),
+            "INSERT INTO queries (query_key, source, scope, fetched_at, hit_count) VALUES (?, ?, ?, ?, ?)",
+            (query_key(query), source, scope, fetched_at, len(records)),
         )
         qid = cur.lastrowid
         self.conn.executemany(
@@ -120,12 +122,12 @@ class Store:
         self.conn.commit()
         return qid
 
-    def cached(self, query: str, source: str, since: str, max_age_hours: float, now: datetime) -> list[dict] | None:
-        """Records from the latest run of this exact question, if it is fresh enough. None otherwise."""
+    def cached(self, query: str, source: str, scope: str, max_age_hours: float, now: datetime) -> list[dict] | None:
+        """Records from the latest run of this exact question and scope, if fresh enough. None otherwise."""
         row = self.conn.execute(
-            "SELECT id, fetched_at FROM queries WHERE query_key = ? AND source = ? AND since = ? "
+            "SELECT id, fetched_at FROM queries WHERE query_key = ? AND source = ? AND scope = ? "
             "ORDER BY fetched_at DESC, id DESC LIMIT 1",
-            (query_key(query), source, since),
+            (query_key(query), source, scope),
         ).fetchone()
         if row is None:
             return None

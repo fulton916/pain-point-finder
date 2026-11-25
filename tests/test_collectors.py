@@ -65,6 +65,12 @@ class HackerNewsTests(unittest.TestCase):
         records = collect_hn.hits_to_records([low, high, dict(low)], "2026-11-24T00:00:00+00:00")
         self.assertEqual([r["score"] for r in records], [500, 5])
 
+    def test_hits_without_object_id_are_skipped_not_merged(self):
+        a = dict(HN_HIT, objectID=None, title="A")
+        b = dict(HN_HIT, objectID="", title="B")
+        records = collect_hn.hits_to_records([a, b, HN_HIT], "2026-11-24T00:00:00+00:00")
+        self.assertEqual([r["url"] for r in records], ["https://news.ycombinator.com/item?id=12345"])
+
 
 class GitHubTests(unittest.TestCase):
     def test_to_record_has_all_fields_and_truncates_body(self):

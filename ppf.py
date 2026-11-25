@@ -70,14 +70,29 @@ def snippet(body: str, max_chars: int) -> str:
     return text[: max_chars - 3].rstrip() + "..."
 
 
+def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only: bool | None) -> str:
+    """Everything besides the words that changes an answer, so the cache never serves a search
+    made with other options. Options are resolved to their config defaults first."""
+    gh = cfg.get("github", {})
+    hn = cfg.get("hacker_news", {})
+    if repos is None:
+        repos = gh.get("search_repos") or []
+    if title_only is None:
+        title_only = bool(hn.get("title_only", True))
+    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}"
+
+
 def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refresh: bool, limit: int,
-               repos: list[str] | None, title_only: bool | None) -> dict:
+               repos: list[str] | None, title_only: bool | None, store: Store | None = None,
+               session: requests.Session | None = None) -> dict:
     common.load_env()
     search_cfg = cfg.get("search", {})
     now = datetime.now(timezone.utc).replace(microsecond=0)
     since = common.parse_since(since_text, now)
-    store = Store(cfg["paths"]["store"])
-    session = requests.Session()
+    scope = search_scope(cfg, since_text, repos, title_only)
+    own_store = store is None
+    store = store or Store(cfg["paths"]["store"])
+    session = session or requests.Session()
     common.STATS["requests"] = 0
 
     all_records: list[dict] = []
@@ -86,7 +101,7 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
     for short in sources:
         mod = SOURCES[short]
         name = mod.SOURCE
-        records = None if refresh else store.cached(query, name, since_text, float(search_cfg.get("cache_hours", 24)), now)
+        records = None if refresh else store.cached(query, name, scope, float(search_cfg.get("cache_hours", 24)), now)
         from_cache = records is not None
         if records is None:
             try:
@@ -96,23 +111,31 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
                 per_source[name] = {"records": 0, "from_cache": False, "error": str(e)}
                 continue
             inserted, updated = store.upsert(records)
-            store.log_query(query, name, since_text, now.isoformat(), records)
+            store.log_query(query, name, scope, now.isoformat(), records)
             log.info("%s: %d new records stored, %d updated", name, inserted, updated)
         per_source[name] = {"records": len(records), "from_cache": from_cache}
         all_records.extend(records)
     store_counts = store.counts()
-    store.close()
+    if own_store:
+        store.close()
 
     if all_records:
         rows, merge_log = merge_and_score.rank(all_records, cfg["scoring"], as_of=now)
     else:
         rows, merge_log = [], []
-    bodies = {r["url"]: r["body"] for r in all_records}
+    # The row's raw_score belongs to its best record. Several sources can share a URL, so pick
+    # the highest-scoring record at that URL for the source name and the snippet.
+    by_url: dict[str, list[dict]] = {}
+    for r in all_records:
+        by_url.setdefault(r["url"], []).append(r)
     max_chars = int(search_cfg.get("snippet_chars", 160))
     out_rows = []
     for r in rows[:limit]:
         row = dict(r)
-        row["snippet"] = snippet(bodies.get(r["best_url"], ""), max_chars)
+        candidates = by_url.get(r["best_url"], [])
+        best = max(candidates, key=lambda m: (m["score"] if m["score"] != "" else -1)) if candidates else None
+        row["best_source"] = best["source"] if best else r["sources"].split(";")[0]
+        row["snippet"] = snippet(best["body"] if best else "", max_chars)
         out_rows.append(row)
 
     return {
@@ -160,7 +183,7 @@ def format_md(result: dict) -> str:
         return "\n".join(lines)
     for r in result["rows"]:
         src = r["sources"]
-        unit = UNITS.get(src.split(";")[0], "score")
+        unit = UNITS.get(r.get("best_source") or src.split(";")[0], "score")
         bits = [src.replace(";", " + ")]
         if r["raw_score"] != "":
             bits.append(f"{r['raw_score']} {unit}")
@@ -228,8 +251,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--limit", type=int, help="rows to print (default from config.yaml)")
     s.add_argument("--refresh", action="store_true", help="ignore the cache and fetch again")
     s.add_argument("--repos", help="GitHub only: comma list of owner/name to search instead of all of GitHub")
-    s.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
-    s.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")
+    title = s.add_mutually_exclusive_group()
+    title.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
+    title.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")
     s.set_defaults(func=cmd_search)
 
     w = sub.add_parser("sweep", help="batch mode: every config keyword and repo, then rank to data/output")
