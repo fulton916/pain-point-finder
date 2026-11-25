@@ -46,7 +46,7 @@ class FormattingTests(unittest.TestCase):
                 "query": "flow limits", "sources": ["hackernews", "github"], "since": "24m", "since_date": "2024-11-24",
                 "generated": "2026-11-24T00:00:00+00:00", "requests_sent": 3,
                 "per_source": {"hackernews": {"records": 2, "from_cache": False}, "github": {"records": 5, "from_cache": True}},
-                "records": 7, "rows": 6, "shown": 1, "merges": 1, "store_totals": {"github": 5, "hackernews": 2},
+                "records": 7, "rows": 6, "shown": 1, "merges": 1, "dropped": 2, "store_totals": {"github": 5, "hackernews": 2},
                 "note": "note text",
             },
             "rows": [{
@@ -65,8 +65,8 @@ class FormattingTests(unittest.TestCase):
         self.assertIn("github (5 records, cache)", md)
         self.assertIn("Requests sent: 3", md)
         self.assertIn("**[Flow \\[beta\\] limits](https://github.com/a/b/issues/1)**", md)
-        self.assertIn("github + hackernews · 42 reactions · 7 comments · date 2026-03-04 · closed", md)
-        self.assertNotIn("Strong", md)
+        self.assertIn("6 after dedupe (1 merges, 2 dropped)", md)
+        self.assertIn("**Strong** · github + hackernews · 42 reactions · 7 comments · date 2026-03-04 · closed", md)
         self.assertIn("Something went wrong...", md)
 
     def test_unit_follows_the_best_record_not_the_first_source(self):

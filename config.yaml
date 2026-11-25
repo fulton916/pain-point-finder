@@ -109,3 +109,29 @@ scoring:
   # Hacker News hits for this topic were mostly news stories, not complaints.
   label_caps:
     hackernews: Moderate
+  # ---- search mode only: labels from raw score thresholds, not percentiles ----
+  # One question's results are too few for percentiles to mean anything, so search mode
+  # labels a row by its raw score against its own source: at or above `strong` (with
+  # activity in the last strong_activity_months) is Strong, at or above `moderate` is
+  # Moderate, else Anecdotal. 2+ sources is always Strong. label_caps still apply.
+  # A source missing here can only be labeled Anecdotal on its own.
+  source_thresholds:
+    github:        {moderate: 5,   strong: 20}    # reactions
+    hackernews:    {moderate: 50,  strong: 150}   # points
+    ideaexchange:  {moderate: 100, strong: 500}   # votes (1 vote = 10 points)
+  # ---- both modes ----
+  # final_score is multiplied by the weight for the row's status (matched ignoring case).
+  # A problem the vendor already solved is less worth building for, so it sinks. The status
+  # itself is still shown unchanged. Statuses not listed use `default`.
+  status_weights:
+    default: 1.0
+    closed: 0.5        # GitHub issue closed (fixed or declined)
+    Delivered: 0.25    # IdeaExchange idea shipped
+    answered: 0.5      # Stack Exchange question with an accepted answer (future source)
+  # Rows whose title matches any of these regular expressions are removed before dedupe,
+  # in both modes. Matched anywhere in the title, ignoring case. Every drop is written to
+  # merge_log.csv with reason dropped_title_pattern. A bad pattern stops the run.
+  drop_title_patterns:
+    - "^Show HN:"
+    - "^Launch HN:"
+    - "^Ask HN: Who is hiring"

@@ -3,7 +3,12 @@
 Reads the files listed under paths.sources in config.yaml.
 Writes:
     data/output/ranked.csv     the ranking
-    data/output/merge_log.csv  every merge that happened, so a bad match can be spotted
+    data/output/merge_log.csv  every merge and every dropped row, so a bad match can be spotted
+
+Two modes share this code (rank(..., mode=...)):
+    sweep   the whole topic: scores become percentiles within their source, labels from percentiles
+    search  one question (ppf.py search): too few rows for percentiles to mean anything, so labels
+            come from raw score thresholds per source (config scoring.source_thresholds)
 
 The whole run is deterministic: the same raw files always give the same ranking.
 "The current date" for recency is the latest fetched_at found in the data, not the clock,
@@ -28,6 +33,7 @@ from urllib.parse import urlsplit, urlunsplit
 from common import ROOT, load_config, log, read_jsonl, setup_logging, validate_record
 
 LABELS = ["Anecdotal", "Moderate", "Strong"]
+MODES = ("sweep", "search")
 RANKED_COLUMNS = [
     "rank",
     "title",
@@ -51,6 +57,7 @@ MERGE_LOG_COLUMNS = [
     "merged_source",
     "merged_url",
     "merged_title",
+    "detail",
 ]
 
 
@@ -103,6 +110,29 @@ def percentile_ranks(scores: list[float]) -> list[float]:
 class Group:
     members: list[dict] = field(default_factory=list)
     norm_title: str = ""
+
+
+def drop_by_title(records: list[dict], patterns: list[re.Pattern], merge_log: list[dict]) -> list[dict]:
+    """Remove rows whose title matches a scoring.drop_title_patterns entry. Every drop is logged
+    with reason dropped_title_pattern; the pattern that matched goes in the detail column."""
+    kept = []
+    for rec in records:
+        hit = next((p for p in patterns if p.search(rec["title"])), None)
+        if hit is None:
+            kept.append(rec)
+            continue
+        merge_log.append({
+            "reason": "dropped_title_pattern",
+            "similarity": "",
+            "kept_source": "",
+            "kept_url": "",
+            "kept_title": "",
+            "merged_source": rec["source"],
+            "merged_url": rec["url"],
+            "merged_title": rec["title"],
+            "detail": hit.pattern,
+        })
+    return kept
 
 
 def dedupe(records: list[dict], scoring: dict, merge_log: list[dict]) -> list[Group]:
@@ -186,6 +216,7 @@ def _log_merge(merge_log: list[dict], kept: dict, merged: dict, reason: str, sim
         "merged_source": merged["source"],
         "merged_url": merged["url"],
         "merged_title": merged["title"],
+        "detail": "",
     })
 
 
@@ -216,11 +247,36 @@ def latest_activity(members: list[dict]) -> datetime | None:
     return max(dates) if dates else None
 
 
-def label_for(source_count: int, top_pct: float, months_since: float | None, sources: list[str], scoring: dict) -> str:
+def threshold_tier(members: list[dict], thresholds: dict) -> int:
+    """Search mode: 2 if any member's raw score reaches its source's `strong` threshold, 1 if any
+    reaches `moderate`, else 0. A source with no thresholds configured contributes 0."""
+    tier = 0
+    for m in members:
+        t = thresholds.get(m["source"])
+        if not t or m["score"] == "":
+            continue
+        score = float(m["score"])
+        if score >= float(t["strong"]):
+            tier = max(tier, 2)
+        elif score >= float(t["moderate"]):
+            tier = max(tier, 1)
+    return tier
+
+
+def label_for(source_count: int, top_pct: float, months_since: float | None, sources: list[str], scoring: dict,
+              tier: int | None = None) -> str:
+    """Sweep mode (tier None): score strength comes from the percentile within the source.
+    Search mode: it comes from the threshold tier (see threshold_tier). The rest is shared."""
     recent = months_since is not None and months_since <= float(scoring["strong_activity_months"])
-    if source_count >= 2 or (top_pct >= float(scoring["strong_percentile"]) and recent):
+    if tier is None:
+        strong_score = top_pct >= float(scoring["strong_percentile"])
+        moderate_score = top_pct >= float(scoring["moderate_percentile"])
+    else:
+        strong_score = tier >= 2
+        moderate_score = tier >= 1
+    if source_count >= 2 or (strong_score and recent):
         label = "Strong"
-    elif top_pct >= float(scoring["moderate_percentile"]):
+    elif moderate_score:
         label = "Moderate"
     else:
         label = "Anecdotal"
@@ -233,7 +289,15 @@ def label_for(source_count: int, top_pct: float, months_since: float | None, sou
     return label
 
 
-def score_group(g: Group, scoring: dict, as_of: datetime) -> dict:
+def status_weight(status: str, scoring: dict) -> float:
+    """Multiplier for the row's status (config scoring.status_weights, matched ignoring case).
+    No table, or a status not in it, means the `default` weight (1.0 if that is missing too)."""
+    weights = {str(k).strip().lower(): float(v) for k, v in (scoring.get("status_weights") or {}).items()}
+    default = weights.get("default", 1.0)
+    return weights.get(str(status or "").strip().lower(), default)
+
+
+def score_group(g: Group, scoring: dict, as_of: datetime, mode: str = "sweep") -> dict:
     members = g.members
     best = max(members, key=lambda m: (m["_pct"], m["score"] if m["score"] != "" else -1, m["url"]))
     sources = sorted({m["source"] for m in members})
@@ -246,7 +310,9 @@ def score_group(g: Group, scoring: dict, as_of: datetime) -> dict:
     comments = max((m["comments"] for m in members if m["comments"] != ""), default="")
     comment_bonus = min(float(scoring["comment_bonus_cap"]), float(scoring["comment_bonus_scale"]) * math.log1p(comments)) if comments != "" else 0.0
     cross_bonus = float(scoring["cross_source_bonus"]) * (len(sources) - 1)
-    final = top_pct * recency + comment_bonus + cross_bonus
+    status = best.get("status", "")
+    final = (top_pct * recency + comment_bonus + cross_bonus) * status_weight(status, scoring)
+    tier = threshold_tier(members, scoring.get("source_thresholds") or {}) if mode == "search" else None
 
     return {
         "title": best["title"],
@@ -257,29 +323,54 @@ def score_group(g: Group, scoring: dict, as_of: datetime) -> dict:
         "raw_score": best["score"],
         "comments": comments,
         "latest_activity": latest.date().isoformat() if latest else "",
-        "status": best.get("status", ""),
-        "evidence_label": label_for(len(sources), top_pct, months, sources, scoring),
+        "status": status,
+        "evidence_label": label_for(len(sources), top_pct, months, sources, scoring, tier),
         "final_score": round(final, 4),
     }
 
 
-def validate_scoring(scoring: dict) -> None:
-    """Catch config typos early with a message that names the bad value."""
+def validate_scoring(scoring: dict) -> list[re.Pattern]:
+    """Catch config typos early with a message that names the bad value.
+    Returns the compiled drop_title_patterns so a bad regex is reported before any work."""
     for source, cap in (scoring.get("label_caps") or {}).items():
         if cap not in LABELS:
             raise SystemExit(f"config.yaml scoring.label_caps.{source} is {cap!r}; must be one of {LABELS}")
+    for source, t in (scoring.get("source_thresholds") or {}).items():
+        try:
+            moderate, strong = float(t["moderate"]), float(t["strong"])
+        except (KeyError, TypeError, ValueError):
+            raise SystemExit(f"config.yaml scoring.source_thresholds.{source} must be {{moderate: <number>, strong: <number>}}, got {t!r}") from None
+        if strong < moderate:
+            raise SystemExit(f"config.yaml scoring.source_thresholds.{source}: strong ({strong:g}) is below moderate ({moderate:g})")
+    for status, w in (scoring.get("status_weights") or {}).items():
+        try:
+            if float(w) < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise SystemExit(f"config.yaml scoring.status_weights.{status} is {w!r}; must be a number >= 0") from None
+    patterns = []
+    for i, pat in enumerate(scoring.get("drop_title_patterns") or []):
+        try:
+            patterns.append(re.compile(str(pat), re.IGNORECASE))
+        except re.error as e:
+            raise SystemExit(f"config.yaml scoring.drop_title_patterns entry {i + 1} ({pat!r}) is not a valid regular expression: {e}") from None
+    return patterns
 
 
-def rank(records: list[dict], scoring: dict, as_of: datetime | None = None) -> tuple[list[dict], list[dict]]:
-    """Pure function: records in, (ranked rows, merge log) out. Used by main() and the tests."""
-    validate_scoring(scoring)
+def rank(records: list[dict], scoring: dict, as_of: datetime | None = None, mode: str = "sweep") -> tuple[list[dict], list[dict]]:
+    """Pure function: records in, (ranked rows, merge log) out. Used by main(), ppf.py and the tests.
+    mode is "sweep" (percentile labels) or "search" (threshold labels); see the module docstring."""
+    if mode not in MODES:
+        raise ValueError(f"mode must be one of {MODES}, got {mode!r}")
+    patterns = validate_scoring(scoring)
     records = [dict(r) for r in records]  # don't mutate the caller's data
     if as_of is None:
         as_of = max((parse_date(r.get("fetched_at")) for r in records), default=None) or datetime.now(timezone.utc)
-    add_percentiles(records)
     merge_log: list[dict] = []
+    records = drop_by_title(records, patterns, merge_log)
+    add_percentiles(records)
     groups = dedupe(records, scoring, merge_log)
-    rows = [score_group(g, scoring, as_of) for g in groups]
+    rows = [score_group(g, scoring, as_of, mode) for g in groups]
     rows.sort(key=lambda r: (-r["final_score"], r["title"].lower(), r["best_url"]))
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
@@ -329,8 +420,9 @@ def main() -> int:
 
     per_source = Counter(r["source"] for r in records)
     labels = Counter(r["evidence_label"] for r in rows)
+    dropped = sum(1 for m in merge_log if m["reason"] == "dropped_title_pattern")
     log.info("records per source: %s", dict(per_source))
-    log.info("%d records -> %d ranked rows, %d merges logged", len(records), len(rows), len(merge_log))
+    log.info("%d records -> %d ranked rows, %d merges and %d drops logged", len(records), len(rows), len(merge_log) - dropped, dropped)
     log.info("labels: %s", dict(labels))
     log.info("wrote %s/ranked.csv and %s/merge_log.csv", out_dir, out_dir)
     return 0
