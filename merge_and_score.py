@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+# or distribute this software without written permission.
+
 """Merge all raw sources, dedupe, normalize, weight, label, and write the ranking.
 
 Reads the files listed under paths.sources in config.yaml.

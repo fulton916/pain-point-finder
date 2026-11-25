@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+# or distribute this software without written permission.
+
 """Fixture tests for the collectors: no network, just the record-building and query-building code."""
 
 import unittest

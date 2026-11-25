@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+# or distribute this software without written permission.
+
 """Import a hand-made IdeaExchange CSV into the common record format.
 
 We do not scrape IdeaExchange. You make data/ideaexchange.csv yourself with these columns:
