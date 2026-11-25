@@ -6,7 +6,7 @@ import re
 import unittest
 
 import ppf
-from common import ROOT
+from common import ROOT, load_config
 
 SKILL = ROOT / "docs" / "skill" / "SKILL.md"
 README = ROOT / "README.md"
@@ -46,6 +46,15 @@ class SkillDocsTest(unittest.TestCase):
         skill = SKILL.read_text(encoding="utf-8")
         for key in ("per_source", "merges", "dropped", "note", "requests_sent", "store_totals"):
             self.assertIn(f"`{key}`", skill)
+
+    def test_skill_threshold_numbers_match_config(self):
+        """The skill quotes the label thresholds by hand; they must match config.yaml."""
+        skill = SKILL.read_text(encoding="utf-8")
+        thresholds = load_config()["scoring"]["source_thresholds"]
+        for source, t in thresholds.items():
+            with self.subTest(source=source):
+                self.assertIn(f"{t['moderate']}/{t['strong']}", skill, f"{source} thresholds changed; update SKILL.md")
+        self.assertIn(str(load_config()["search"]["snippet_chars"]), skill)
 
     def test_skill_states_data_not_instructions(self):
         skill = SKILL.read_text(encoding="utf-8")

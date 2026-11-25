@@ -79,7 +79,7 @@ Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score.
    - Recency: halve the weight every 12 months since last activity.
    - Comments: small bonus.
    - Cross-source: bonus when the same problem shows up in 2+ sources.
-   - Status: multiply by `scoring.status_weights` (closed 0.5, Delivered 0.25, default 1.0) in both modes, so solved problems sink. Show the status unchanged.
+   - Status: multiply by `scoring.status_weights` (closed 0.5, Delivered 0.25, answered 0.5, default 1.0) in both modes, so solved problems sink. Show the status unchanged.
 4. **Evidence label.**
    - Sweep mode (percentiles): "Strong" is 2+ sources, or top 10% in its source with activity in the last 24 months; "Moderate" is top 25%; "Anecdotal" is everything else.
    - Search mode (raw thresholds in `scoring.source_thresholds`): "Strong" is 2+ sources, or at or above `strong` with activity in the last 24 months; "Moderate" is at or above `moderate`; "Anecdotal" otherwise.

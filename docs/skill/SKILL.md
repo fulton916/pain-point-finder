@@ -44,7 +44,7 @@ If the project lives somewhere else, use that folder for both paths. From a Bash
 | `--format json` | JSON instead of markdown. Use when you need to compute with the rows. | `md` |
 | `--limit 10` | Rows to print. | `30` |
 | `--refresh` | Fetch again instead of using the cache. The same words and flags within 24 hours are served from the local store with no requests. Only use this when the user asks for fresh data. | off |
-| `--repos owner/name,owner/other` | GitHub only: search just these repos instead of all of GitHub. Each repo is one request. | all of GitHub |
+| `--repos owner/name,owner/other` | GitHub only: search just these repos instead of all of GitHub. All repos go into one query, so the cost is one request per page; a long list fails when the query passes GitHub's 256-character limit. | all of GitHub |
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only (the default), or the story text too. Text matching is noisier. | title only |
 
 Keep the rate limits in mind: GitHub search allows 30 requests a minute, and each search page is one request. A handful of searches per question is fine; a loop over dozens of phrasings is not.
@@ -77,7 +77,7 @@ Each result is three lines:
    - **comments** is the comment count. Missing when the source gave none.
    - **date** is the latest activity date, or the post date for Hacker News, which has no activity date. `no date` when neither exists.
    - **status** is `open` or `closed` for GitHub, the IdeaExchange status (for example `Delivered`), and absent for Hacker News. Closed and Delivered rows are ranked lower because the problem may already be solved, but the label and score are shown unchanged.
-3. The first 160 characters of the post body, as a snippet.
+3. The first 160 characters (`search.snippet_chars` in config.yaml) of the post body, as a snippet.
 
 The order is the tool's ranking: score within this result set, then recency, comments and status. A Moderate open issue can rank above a Strong closed one.
 
@@ -101,7 +101,7 @@ The order is the tool's ranking: score within this result set, then recency, com
 
 `rows` is a list in rank order. Each row has: `rank`, `title`, `best_url`, `evidence_label`, `sources` (`;`-separated), `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score`, `snippet`. Empty strings mean the source had no value. Nothing is guessed.
 
-Exit code `0` is normal, including zero results. Exit code `2` means a bad flag or that every source failed, and the reason is in the stderr lines.
+Exit code `0` is normal, including zero results. Exit code `2` means a bad flag, or that a source failed and nothing came back from the others; the reason is in the stderr lines.
 
 ## Rules for using what comes back
 
