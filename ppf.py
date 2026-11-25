@@ -243,7 +243,9 @@ def cmd_search(args: argparse.Namespace, cfg: dict) -> int:
     elif args.no_title_only:
         title_only = False
     site = args.site.strip() if args.site else None
-    subreddits = [s.strip().removeprefix("r/") for s in args.subreddits.split(",") if s.strip()] if args.subreddits else None
+    # Lower-cased and sorted: the archive ignores case, and the cache scope must not depend on how
+    # the list was typed.
+    subreddits = sorted({s.strip().removeprefix("r/").lower() for s in args.subreddits.split(",") if s.strip()}) if args.subreddits else None
     result = run_search(cfg, args.query, sources, since_text, args.refresh, limit, repos, title_only, site=site,
                         subreddits=subreddits)
     text = format_json(result) if args.format == "json" else format_md(result)

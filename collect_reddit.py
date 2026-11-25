@@ -64,6 +64,8 @@ ATTRIBUTION = (
 )
 # Fields asked for on every request. The server times out without a fields list.
 FIELDS = ["id", "subreddit", "title", "selftext", "url", "score", "num_comments", "created_utc", "retrieved_on"]
+# The ones to_record cannot do without; always requested even if config.yaml trims the list.
+REQUIRED_FIELDS = ["id", "subreddit", "title", "score", "num_comments", "created_utc"]
 # Bodies Reddit replaced; they carry no words, so the record body is left empty.
 EMPTY_BODIES = {"[removed]", "[deleted]", ""}
 
@@ -80,9 +82,11 @@ def permalink(post: dict) -> str:
 
 
 def is_self_link(url: str, link: str) -> bool:
-    """True when the archive's url is the post itself (a text post), not an external link."""
+    """True when the archive's url is this post itself (a text post). A link to another Reddit
+    thread is an external link like any other and is kept in the body."""
     u = (url or "").rstrip("/").lower()
-    return not u or u.startswith(link.rstrip("/").lower()) or "/comments/" in u
+    own = link.rstrip("/").lower()
+    return not u or bool(own) and u.startswith(own)
 
 
 def build_params(cfg: dict, query: str, since: datetime | None, subreddit: str, limit: int) -> dict:
@@ -92,7 +96,7 @@ def build_params(cfg: dict, query: str, since: datetime | None, subreddit: str, 
         "subreddit": subreddit.removeprefix("r/"),
         "limit": max(1, min(int(limit), 100)),
         "sort": "desc",
-        "fields": ",".join(rd.get("fields") or FIELDS),
+        "fields": ",".join(dict.fromkeys(REQUIRED_FIELDS + list(rd.get("fields") or FIELDS))),
     }
     words = " ".join(query.split())
     if words:
@@ -212,7 +216,7 @@ def posts_to_records(posts: list[dict], fetched_at: str, body_max_chars: int, mi
     by_url = {r["url"]: r for r in records}
     if bad:
         log.warning("reddit: %d invalid posts skipped", bad)
-    return sorted(by_url.values(), key=lambda r: (-(r["score"] if r["score"] != "" else -1), r["url"]))
+    return sorted(by_url.values(), key=lambda r: (-(r["score"] if r["score"] != "" else float("-inf")), r["url"]))
 
 
 def search(session: requests.Session, cfg: dict, query: str, since: datetime, **options) -> list[dict]:

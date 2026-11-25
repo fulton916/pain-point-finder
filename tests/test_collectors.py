@@ -283,6 +283,9 @@ class RedditTests(unittest.TestCase):
         rec = collect_reddit.to_record(post, "2026-11-25T00:00:00+00:00", 2000)
         self.assertEqual(rec["url"], "https://www.reddit.com/r/salesforce/comments/abc/")
         self.assertEqual(rec["body"], "Link: https://example.com/article")
+        other = dict(RD_POST, url="https://www.reddit.com/r/SalesforceDeveloper/comments/xyz/some_thread/", selftext="")
+        self.assertEqual(collect_reddit.to_record(other, "x", 2000)["body"],
+                         "Link: https://www.reddit.com/r/SalesforceDeveloper/comments/xyz/some_thread/")
         self.assertIsNone(collect_reddit.to_record(dict(RD_POST, score=3), "2026-11-25T00:00:00+00:00", 2000, min_score=5))
         self.assertEqual(len(collect_reddit.to_record(dict(RD_POST, selftext="y" * 5000), "x", 2000)["body"]), 2000)
 
@@ -299,11 +302,16 @@ class RedditTests(unittest.TestCase):
         self.assertNotIn("query", bare)
         self.assertNotIn("after", bare)
         self.assertIn("fields", bare)
+        trimmed = collect_reddit.build_params({"reddit": dict(RD_CFG["reddit"], fields=["title", "score"])}, "x", None, "s", 10)
+        for needed in ("id", "subreddit", "created_utc", "num_comments"):
+            self.assertIn(needed, trimmed["fields"].split(","))
 
     def test_posts_to_records_dedupes_by_url_and_sorts(self):
         low = dict(RD_POST, id="zzz", score=1)
-        records = collect_reddit.posts_to_records([low, RD_POST, dict(RD_POST)], "2026-11-25T00:00:00+00:00", 2000)
-        self.assertEqual([r["score"] for r in records], [12, 1])
+        down = dict(RD_POST, id="down", score=-4)
+        none = dict(RD_POST, id="none", score=None)
+        records = collect_reddit.posts_to_records([low, down, none, RD_POST, dict(RD_POST)], "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual([r["score"] for r in records], [12, 1, -4, ""])
 
     def test_timeout_is_retried_then_the_subreddit_is_skipped(self):
         answers = [timeout_422(), timeout_422(), timeout_422(),       # salesforce: 1 try + 2 retries, skipped
