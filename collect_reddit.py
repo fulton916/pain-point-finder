@@ -96,7 +96,7 @@ def build_params(cfg: dict, query: str, since: datetime | None, subreddit: str, 
         "subreddit": subreddit.removeprefix("r/"),
         "limit": max(1, min(int(limit), 100)),
         "sort": "desc",
-        "fields": ",".join(dict.fromkeys(REQUIRED_FIELDS + list(rd.get("fields") or FIELDS))),
+        "fields": ",".join(dict.fromkeys(list(rd.get("fields") or FIELDS) + REQUIRED_FIELDS)),
     }
     words = " ".join(query.split())
     if words:
