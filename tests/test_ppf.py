@@ -72,6 +72,12 @@ class FormattingTests(unittest.TestCase):
         self.assertIn("**Strong** · github + hackernews · 42 reactions · 7 comments · date 2026-03-04 · closed", md)
         self.assertIn("Something went wrong...", md)
 
+    def test_stack_exchange_comments_are_printed_as_answers(self):
+        r = self.result()
+        r["rows"][0]["best_source"] = "stackexchange"
+        r["rows"][0]["sources"] = "stackexchange"
+        self.assertIn("42 votes · 7 answers", ppf.format_md(r))
+
     def test_unit_follows_the_best_record_not_the_first_source(self):
         r = self.result()
         r["rows"][0]["best_source"] = "hackernews"

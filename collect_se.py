@@ -64,13 +64,17 @@ FILTER = "withbody"
 # The API asks us to wait `backoff` seconds before hitting the same method again. Keyed by method
 # so a backoff from /search/advanced does not stall an unrelated call.
 BACKOFF_UNTIL: dict[str, float] = {}
+_WARNED_NO_KEY = False
 
 
 def key_param() -> dict[str, str]:
     """The API key as a query parameter, or nothing. Logged never, redacted everywhere."""
+    global _WARNED_NO_KEY
     key = env("STACKEXCHANGE_KEY")
     if not key:
-        log.warning("STACKEXCHANGE_KEY is empty: running without a key (300 requests/day instead of 10,000)")
+        if not _WARNED_NO_KEY:
+            log.warning("STACKEXCHANGE_KEY is empty: running without a key (300 requests/day instead of 10,000)")
+            _WARNED_NO_KEY = True
         return {}
     SECRETS.add(key)
     return {"key": key}
@@ -222,6 +226,7 @@ def check_key(cfg: dict) -> int:
     se = cfg["stackexchange"]
     session = requests.Session()
     params = dict(build_params(cfg, "", None, 1, se["site"], 0), pagesize=1, **key_param())
+    wait_for_backoff(se["endpoint"].rsplit("/2.3/", 1)[-1])
     try:
         data, _ = get_json(session, se["endpoint"], params=params, max_tries=1)
     except requests.HTTPError as e:

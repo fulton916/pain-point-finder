@@ -43,7 +43,7 @@ If the project lives somewhere else, use that folder for both paths. From a Bash
 | Flag | What it does | Default |
 |---|---|---|
 | `--sources hn,gh,se,ie` | Which sources to ask. `hn` Hacker News, `gh` GitHub issues, `se` Stack Exchange (one site), `ie` IdeaExchange CSV (local, often empty). | `hn,gh,se` from config.yaml |
-| `--since 24m` | How far back. `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. | `24m` |
+| `--since 24m` | How far back. `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. For GitHub this is a window on activity; for Hacker News and Stack Exchange it is on the posting date, so an old question that is still active does not appear. | `24m` |
 | `--format json` | JSON instead of markdown. Use when you need to compute with the rows. | `md` |
 | `--limit 10` | Rows to print. | `30` |
 | `--refresh` | Fetch again instead of using the cache. The same words and flags within 24 hours are served from the local store with no requests. Only use this when the user asks for fresh data. | off |
@@ -78,7 +78,7 @@ Each result is three lines:
    - **Label** is the evidence label. **Strong**: found in 2+ sources, or its raw score is at or above the source's `strong` threshold with activity in the last 24 months. **Moderate**: at or above the `moderate` threshold. **Anecdotal**: everything else. Thresholds live in `config.yaml` under `scoring.source_thresholds`; as of 2026-11-25 they are GitHub 5/20 reactions, Hacker News 50/150 points, Stack Exchange 3/8 votes (salesforce.stackexchange.com scores run low: its top questions of the last two years scored under 10), IdeaExchange 100/500 votes. Hacker News rows alone are capped at Moderate because most hits are news, not complaints.
    - **source** is `github`, `hackernews`, `stackexchange` or `ideaexchange`; two sources joined with ` + ` mean the same problem appeared in both.
    - The **score** uses the source's own unit: `reactions` (GitHub), `points` (Hacker News), `votes` (Stack Exchange question score, and IdeaExchange where 1 vote = 10 points). Missing when the source gave none.
-   - **comments** is the comment count, or the answer count for Stack Exchange. Missing when the source gave none.
+   - **comments** is the comment count. For Stack Exchange it is the answer count and is printed as `N answers`. Missing when the source gave none.
    - **date** is the latest activity date, or the post date for Hacker News, which has no activity date. `no date` when neither exists.
    - **status** is `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered (absent otherwise), the IdeaExchange status (for example `Delivered`), and absent for Hacker News. Closed, answered and Delivered rows are ranked lower because the problem may already be solved, but the label and score are shown unchanged.
 3. The first 160 characters (`search.snippet_chars` in config.yaml) of the post body, as a snippet.

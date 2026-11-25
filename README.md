@@ -71,8 +71,8 @@ You should see `OK: token accepted` and a rate limit of 30 per minute.
 Without a key the Stack Exchange source still works, but only 300 requests a day. With one it is 10,000.
 
 1. Go to https://stackapps.com/apps/oauth/register and sign in with any Stack Exchange account.
-2. Fill in an application name (for example "Pain Point Finder, personal research"), a description, and `http://localhost` as the OAuth domain. Tick **Enable Client Side OAuth Flow** or leave it; the tool does not use OAuth.
-3. Click **Register Your Application** and copy the **Key** (not the secret) into `.env` after `STACKEXCHANGE_KEY=`.
+2. Register an application (any name and description; the tool does not use OAuth, so the OAuth fields only need something valid such as `localhost`).
+3. Copy the application's **Key** (not the client secret) into `.env` after `STACKEXCHANGE_KEY=`.
 
 Check it works:
 
@@ -105,7 +105,7 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only, or title and text. | title only |
 | `--site stackoverflow` | Stack Exchange only: which site to search, by its API name (`salesforce`, `stackoverflow`, `serverfault`, ...). | `salesforce` (section `stackexchange`) |
 
-Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes.
+Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. `--since` is a window on activity for GitHub but on the posting date for Hacker News and Stack Exchange (their APIs offer no activity filter), so an old question that is still active does not appear.
 
 ### What it prints
 
@@ -126,7 +126,7 @@ The second line of each row is `**Label** · source · score · comments · date
 - **Label**: *Strong*, *Moderate* or *Anecdotal* (see "Evidence labels" below).
 - **source**: `github`, `hackernews`, `stackexchange` or `ideaexchange`; `github + ideaexchange` means both had it.
 - **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange).
-- **comments**: the comment count, or the answer count for Stack Exchange.
+- **comments**: the comment count, printed as `answers` for Stack Exchange, which counts answers there.
 - **date**: latest activity, or the post date for Hacker News. `no date` if the source gave none.
 - **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News.
 

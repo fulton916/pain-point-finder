@@ -52,6 +52,8 @@ UNITS = {
     "stackexchange": "votes",
     "reddit": "upvotes",
 }
+# What the comments field counts when it is not comments (Stack Exchange stores answer_count there).
+COMMENT_UNITS = {"stackexchange": "answers"}
 
 
 def parse_sources(text: str) -> list[str]:
@@ -200,12 +202,13 @@ def format_md(result: dict) -> str:
         return "\n".join(lines)
     for r in result["rows"]:
         src = r["sources"]
-        unit = UNITS.get(r.get("best_source") or src.split(";")[0], "score")
+        best_source = r.get("best_source") or src.split(";")[0]
+        unit = UNITS.get(best_source, "score")
         bits = [f"**{r['evidence_label']}**", src.replace(";", " + ")]
         if r["raw_score"] != "":
             bits.append(f"{r['raw_score']} {unit}")
         if r["comments"] != "":
-            bits.append(f"{r['comments']} comments")
+            bits.append(f"{r['comments']} {COMMENT_UNITS.get(best_source, 'comments')}")
         # latest_activity falls back to the post date when a source has no activity date (Hacker News).
         bits.append(f"date {r['latest_activity']}" if r["latest_activity"] else "no date")
         if r["status"]:
@@ -243,13 +246,16 @@ def cmd_search(args: argparse.Namespace, cfg: dict) -> int:
 
 
 def cmd_sweep(args: argparse.Namespace, cfg: dict) -> int:
-    collect_hn.main()
-    rc = collect_gh.main([])
-    if rc:
-        return rc
-    rc = collect_se.main([])
-    if rc:
-        return rc
+    # One failing API must not stop the others or the ranking; the raw file it wrote last time stays.
+    for name, run in (("hackernews", lambda: collect_hn.main()), ("github", lambda: collect_gh.main([])),
+                      ("stackexchange", lambda: collect_se.main([]))):
+        try:
+            rc = run()
+        except (requests.HTTPError, common.RateLimited, ValueError, RuntimeError) as e:
+            log.error("%s sweep failed: %s", name, e)
+            continue
+        if rc:
+            log.error("%s sweep returned %s", name, rc)
     csv_path = common.ROOT / cfg["ideaexchange"]["csv_path"]
     if csv_path.exists():
         import_ideaexchange.main([])
