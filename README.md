@@ -244,3 +244,7 @@ Every raw record has the same 11 fields: `source, url, title, body, score, comme
 ## Attribution
 
 Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Use this tool for research, not republishing.
+
+## License
+
+Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify, or distribute this software without written permission. See `LICENSE`.

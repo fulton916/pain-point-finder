@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+# or distribute this software without written permission.
+
 """Local evidence store: one SQLite file that accumulates every record ever fetched.
 
 Why: a question asked twice should not refetch, and records should pile up over time so

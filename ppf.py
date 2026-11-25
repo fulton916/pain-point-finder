@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+# or distribute this software without written permission.
+
 """Pain Point Finder command line.
 
     python ppf.py search "flow fault path email" --sources hn,gh --since 24m --format md

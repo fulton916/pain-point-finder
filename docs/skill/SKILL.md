@@ -5,6 +5,9 @@ description: Pull real user discussion with vote counts (Hacker News, GitHub iss
 
 # Pain Point Finder
 
+<!-- Copyright (c) 2026 Sean R Fulton. All rights reserved. No permission is granted to use, copy, modify,
+     or distribute this software without written permission. -->
+
 A local command line tool at `D:\Projects\Pain_Point_Finder`. One question in, a ranked list of real posts out, each with its vote count, comment count, date, status and link. Nothing is scraped: it uses the Hacker News Algolia API, the GitHub issues search API and a local IdeaExchange CSV Sean made by hand.
 
 ## When to use it
