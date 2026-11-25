@@ -348,10 +348,16 @@ def validate_scoring(scoring: dict) -> list[re.Pattern]:
                 raise ValueError
         except (TypeError, ValueError):
             raise SystemExit(f"config.yaml scoring.status_weights.{status} is {w!r}; must be a number >= 0") from None
+    raw_patterns = scoring.get("drop_title_patterns") or []
+    if not isinstance(raw_patterns, list):
+        raise SystemExit(f"config.yaml scoring.drop_title_patterns must be a list of strings (one `- \"pattern\"` per line), got {raw_patterns!r}")
     patterns = []
-    for i, pat in enumerate(scoring.get("drop_title_patterns") or []):
+    for i, pat in enumerate(raw_patterns):
+        # A blank `-` line reads as None and an empty string matches every title: both are mistakes.
+        if not isinstance(pat, str) or not pat.strip():
+            raise SystemExit(f"config.yaml scoring.drop_title_patterns entry {i + 1} is {pat!r}; each entry must be a non-empty string")
         try:
-            patterns.append(re.compile(str(pat), re.IGNORECASE))
+            patterns.append(re.compile(pat, re.IGNORECASE))
         except re.error as e:
             raise SystemExit(f"config.yaml scoring.drop_title_patterns entry {i + 1} ({pat!r}) is not a valid regular expression: {e}") from None
     return patterns
@@ -364,10 +370,10 @@ def rank(records: list[dict], scoring: dict, as_of: datetime | None = None, mode
         raise ValueError(f"mode must be one of {MODES}, got {mode!r}")
     patterns = validate_scoring(scoring)
     records = [dict(r) for r in records]  # don't mutate the caller's data
+    merge_log: list[dict] = []
+    records = drop_by_title(records, patterns, merge_log)  # first, so dropped rows affect nothing below
     if as_of is None:
         as_of = max((parse_date(r.get("fetched_at")) for r in records), default=None) or datetime.now(timezone.utc)
-    merge_log: list[dict] = []
-    records = drop_by_title(records, patterns, merge_log)
     add_percentiles(records)
     groups = dedupe(records, scoring, merge_log)
     rows = [score_group(g, scoring, as_of, mode) for g in groups]

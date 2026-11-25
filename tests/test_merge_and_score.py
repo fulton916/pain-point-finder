@@ -288,6 +288,29 @@ class DropPatternTests(unittest.TestCase):
         self.assertIn("(unclosed", msg)
 
 
+    def test_blank_or_empty_pattern_is_rejected(self):
+        for bad in (None, "", "   ", 42):
+            scoring = dict(SCORING, drop_title_patterns=["^Show HN:", bad])
+            with self.assertRaises(SystemExit, msg=repr(bad)) as cm:
+                ms.rank(gh_spread(2), scoring, AS_OF)
+            self.assertIn("entry 2", str(cm.exception))
+
+    def test_patterns_must_be_a_list(self):
+        scoring = dict(SCORING, drop_title_patterns="^Show HN:")
+        with self.assertRaises(SystemExit) as cm:
+            ms.rank(gh_spread(2), scoring, AS_OF)
+        self.assertIn("must be a list", str(cm.exception))
+
+    def test_dropped_row_does_not_set_the_as_of_date(self):
+        # The only row fetched later is dropped, so "today" comes from the surviving row and its
+        # recency weight is a full 1.0.
+        keep = rec("github", "https://github.com/o/r/issues/1", "Issue fetched on the earlier day", 10, created="2026-11-24T00:00:00+00:00")
+        show = rec("hackernews", "https://news.ycombinator.com/item?id=1", "Show HN: Fetched a year later", 300)
+        show["fetched_at"] = "2027-11-24T00:00:00+00:00"
+        rows, _ = ms.rank([keep, show], SCORING)  # no as_of: taken from the data
+        self.assertAlmostEqual(rows[0]["final_score"], 1.0, places=4)
+
+
 class ConfigValidationTests(unittest.TestCase):
     def test_threshold_must_have_both_numbers(self):
         scoring = dict(SCORING, source_thresholds={"github": {"moderate": 5}})
