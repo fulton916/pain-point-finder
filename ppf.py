@@ -28,6 +28,7 @@ import requests
 
 import collect_gh
 import collect_hn
+import collect_reddit
 import collect_se
 import common
 import import_ideaexchange
@@ -42,8 +43,9 @@ SOURCES = {
     "gh": collect_gh,
     "ie": import_ideaexchange,
     "se": collect_se,
+    "rd": collect_reddit,
 }
-ALIASES = {"hackernews": "hn", "github": "gh", "ideaexchange": "ie", "stackexchange": "se"}
+ALIASES = {"hackernews": "hn", "github": "gh", "ideaexchange": "ie", "stackexchange": "se", "reddit": "rd"}
 # What a score counts, per source, for the printed line.
 UNITS = {
     "hackernews": "points",
@@ -79,7 +81,7 @@ def snippet(body: str, max_chars: int) -> str:
 
 
 def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only: bool | None,
-                 site: str | None = None) -> str:
+                 site: str | None = None, subreddits: list[str] | None = None) -> str:
     """Everything besides the words that changes an answer, so the cache never serves a search
     made with other options. Options are resolved to their config defaults first."""
     gh = cfg.get("github", {})
@@ -89,17 +91,20 @@ def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only
     if title_only is None:
         title_only = bool(hn.get("title_only", True))
     site = site or cfg.get("stackexchange", {}).get("site", "")
-    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}"
+    if subreddits is None:
+        subreddits = cfg.get("reddit", {}).get("subreddits") or []
+    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={','.join(subreddits)}"
 
 
 def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refresh: bool, limit: int,
                repos: list[str] | None, title_only: bool | None, store: Store | None = None,
-               session: requests.Session | None = None, site: str | None = None) -> dict:
+               session: requests.Session | None = None, site: str | None = None,
+               subreddits: list[str] | None = None) -> dict:
     common.load_env()
     search_cfg = cfg.get("search", {})
     now = datetime.now(timezone.utc).replace(microsecond=0)
     since = common.parse_since(since_text, now)
-    scope = search_scope(cfg, since_text, repos, title_only, site)
+    scope = search_scope(cfg, since_text, repos, title_only, site, subreddits)
     own_store = store is None
     store = store or Store(cfg["paths"]["store"])
     session = session or requests.Session()
@@ -107,7 +112,7 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
 
     all_records: list[dict] = []
     per_source: dict[str, dict] = {}
-    options = {"repos": repos, "title_only": title_only, "site": site}
+    options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits}
     for short in sources:
         mod = SOURCES[short]
         name = mod.SOURCE
@@ -238,7 +243,11 @@ def cmd_search(args: argparse.Namespace, cfg: dict) -> int:
     elif args.no_title_only:
         title_only = False
     site = args.site.strip() if args.site else None
-    result = run_search(cfg, args.query, sources, since_text, args.refresh, limit, repos, title_only, site=site)
+    # Lower-cased and sorted: the archive ignores case, and the cache scope must not depend on how
+    # the list was typed.
+    subreddits = sorted({s.strip().removeprefix("r/").lower() for s in args.subreddits.split(",") if s.strip()}) if args.subreddits else None
+    result = run_search(cfg, args.query, sources, since_text, args.refresh, limit, repos, title_only, site=site,
+                        subreddits=subreddits)
     text = format_json(result) if args.format == "json" else format_md(result)
     sys.stdout.write(text + ("\n" if not text.endswith("\n") else ""))
     failed = [n for n, i in result["meta"]["per_source"].items() if "error" in i]
@@ -248,7 +257,7 @@ def cmd_search(args: argparse.Namespace, cfg: dict) -> int:
 def cmd_sweep(args: argparse.Namespace, cfg: dict) -> int:
     # One failing API must not stop the others or the ranking; the raw file it wrote last time stays.
     for name, run in (("hackernews", lambda: collect_hn.main()), ("github", lambda: collect_gh.main([])),
-                      ("stackexchange", lambda: collect_se.main([]))):
+                      ("stackexchange", lambda: collect_se.main([])), ("reddit", lambda: collect_reddit.main([]))):
         try:
             rc = run()
         except (requests.HTTPError, common.RateLimited, ValueError, RuntimeError) as e:
@@ -270,7 +279,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("search", help="ask one question across the sources")
     s.add_argument("query", help="the words to search for")
-    s.add_argument("--sources", help="comma list: hn, gh, se, ie (default from config.yaml)")
+    s.add_argument("--sources", help="comma list: hn, gh, se, rd, ie (default from config.yaml)")
     s.add_argument("--since", help="24m, 30d, 8w, 2y or YYYY-MM-DD (default from config.yaml)")
     s.add_argument("--format", choices=["md", "json"], default="md")
     s.add_argument("--limit", type=int, help="rows to print (default from config.yaml)")
@@ -280,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
     title.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
     title.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")
     s.add_argument("--site", help="Stack Exchange only: site to search, e.g. salesforce, stackoverflow (default from config.yaml)")
+    s.add_argument("--subreddits", help="Reddit only: comma list of subreddits to search instead of the config list, e.g. salesforce,SalesforceDeveloper")
     s.set_defaults(func=cmd_search)
 
     w = sub.add_parser("sweep", help="batch mode: every config keyword and repo, then rank to data/output")

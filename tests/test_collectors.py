@@ -11,6 +11,7 @@ import requests
 
 import collect_gh
 import collect_hn
+import collect_reddit
 import collect_se
 import common
 from common import FIELDS, validate_record
@@ -230,6 +231,123 @@ class StackExchangeTests(unittest.TestCase):
             self.assertEqual(fi.call_args.args[4], "salesforce")
             collect_se.search(object(), SE_CFG, "flow", since, site="stackoverflow")
             self.assertEqual(fi.call_args.args[4], "stackoverflow")
+
+
+RD_POST = {
+    "id": "1y531el",
+    "subreddit": "salesforce",
+    "title": "Flow fault email goes to the &quot;wrong&quot; user",
+    "selftext": "When a Flow fails &amp; the fault email arrives, it goes to the last modifier.",
+    "url": "https://www.reddit.com/r/salesforce/comments/1y531el/flow_fault_email_goes_to_the_wrong_user/",
+    "score": 12,
+    "num_comments": 4,
+    "created_utc": 1735689600,   # 2025-01-01T00:00:00Z
+    "retrieved_on": 1735689620,
+}
+
+RD_CFG = {
+    "reddit": {
+        "endpoint": "https://arctic-shift.photon-reddit.com/api/posts/search",
+        "subreddits": ["salesforce", "salesforceadmin"],
+        "fields": ["id", "subreddit", "title", "selftext", "url", "score", "num_comments", "created_utc", "retrieved_on"],
+        "search_limit": 100, "search_min_score": 0, "delay_seconds": 0,
+        "timeout_retries": 2, "timeout_pause_seconds": 0, "body_max_chars": 2000,
+    }
+}
+
+
+def timeout_422() -> requests.HTTPError:
+    resp = mock.Mock()
+    resp.status_code = 422
+    resp.json.return_value = {"data": None, "error": "Timeout. Maybe slow down a bit"}
+    return requests.HTTPError("HTTP 422 Unprocessable Entity from https://x", response=resp)
+
+
+class RedditTests(unittest.TestCase):
+    def test_to_record_builds_the_permalink_and_maps_the_fields(self):
+        rec = collect_reddit.to_record(RD_POST, "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual(list(rec), FIELDS)
+        self.assertEqual(validate_record(rec), [])
+        self.assertEqual(rec["source"], "reddit")
+        self.assertEqual(rec["url"], "https://www.reddit.com/r/salesforce/comments/1y531el/")
+        self.assertEqual(rec["title"], 'Flow fault email goes to the "wrong" user')
+        self.assertEqual(rec["body"], "When a Flow fails & the fault email arrives, it goes to the last modifier.")
+        self.assertEqual(rec["score"], 12)
+        self.assertEqual(rec["comments"], 4)
+        self.assertEqual(rec["views"], "")
+        self.assertEqual(rec["created_at"], "2025-01-01T00:00:00+00:00")
+        self.assertEqual((rec["last_activity"], rec["status"]), ("", ""))
+
+    def test_link_post_keeps_the_external_url_in_the_body_and_removed_text_is_empty(self):
+        post = dict(RD_POST, id="t3_abc", url="https://example.com/article", selftext="[removed]")
+        rec = collect_reddit.to_record(post, "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual(rec["url"], "https://www.reddit.com/r/salesforce/comments/abc/")
+        self.assertEqual(rec["body"], "Link: https://example.com/article")
+        other = dict(RD_POST, url="https://www.reddit.com/r/SalesforceDeveloper/comments/xyz/some_thread/", selftext="")
+        self.assertEqual(collect_reddit.to_record(other, "x", 2000)["body"],
+                         "Link: https://www.reddit.com/r/SalesforceDeveloper/comments/xyz/some_thread/")
+        self.assertIsNone(collect_reddit.to_record(dict(RD_POST, score=3), "2026-11-25T00:00:00+00:00", 2000, min_score=5))
+        self.assertEqual(len(collect_reddit.to_record(dict(RD_POST, selftext="y" * 5000), "x", 2000)["body"]), 2000)
+
+    def test_build_params_always_sends_fields_subreddit_words_and_after(self):
+        since = datetime(2024, 11, 25, tzinfo=timezone.utc)
+        p = collect_reddit.build_params(RD_CFG, "flow  fault email", since, "r/salesforce", 250)
+        self.assertEqual(p["subreddit"], "salesforce")
+        self.assertEqual(p["query"], "flow fault email")
+        self.assertEqual(p["after"], int(since.timestamp()))
+        self.assertEqual(p["limit"], 100)
+        self.assertEqual(p["sort"], "desc")
+        self.assertEqual(p["fields"], "id,subreddit,title,selftext,url,score,num_comments,created_utc,retrieved_on")
+        bare = collect_reddit.build_params(RD_CFG, "", None, "salesforce", 10)
+        self.assertNotIn("query", bare)
+        self.assertNotIn("after", bare)
+        self.assertIn("fields", bare)
+        trimmed = collect_reddit.build_params({"reddit": dict(RD_CFG["reddit"], fields=["title", "score"])}, "x", None, "s", 10)
+        for needed in ("id", "subreddit", "created_utc", "num_comments"):
+            self.assertIn(needed, trimmed["fields"].split(","))
+
+    def test_posts_to_records_dedupes_by_url_and_sorts(self):
+        low = dict(RD_POST, id="zzz", score=1)
+        down = dict(RD_POST, id="down", score=-4)
+        none = dict(RD_POST, id="none", score=None)
+        records = collect_reddit.posts_to_records([low, down, none, RD_POST, dict(RD_POST)], "2026-11-25T00:00:00+00:00", 2000)
+        self.assertEqual([r["score"] for r in records], [12, 1, -4, ""])
+
+    def test_timeout_is_retried_then_the_subreddit_is_skipped(self):
+        answers = [timeout_422(), timeout_422(), timeout_422(),       # salesforce: 1 try + 2 retries, skipped
+                   ({"data": [dict(RD_POST, subreddit="salesforceadmin")]}, None)]  # salesforceadmin answers
+        with mock.patch.object(collect_reddit, "get_json", side_effect=answers) as gj, \
+             mock.patch.object(collect_reddit.time, "sleep"):
+            posts = collect_reddit.fetch_posts(object(), RD_CFG, "flow", None, ["salesforce", "salesforceadmin"], 100)
+        self.assertEqual(gj.call_count, 4)
+        self.assertEqual([p["subreddit"] for p in posts], ["salesforceadmin"])
+
+    def test_every_subreddit_timing_out_fails_the_source(self):
+        with mock.patch.object(collect_reddit, "get_json", side_effect=[timeout_422()] * 3), \
+             mock.patch.object(collect_reddit.time, "sleep"):
+            with self.assertRaises(RuntimeError) as cm:
+                collect_reddit.fetch_posts(object(), RD_CFG, "flow", None, ["salesforce"], 100)
+        self.assertIn("refused every subreddit", str(cm.exception))
+
+    def test_other_4xx_errors_are_not_retried(self):
+        resp = mock.Mock()
+        resp.status_code = 400
+        resp.json.return_value = {"data": None, "error": "'permalink' is not a valid field"}
+        bad = requests.HTTPError("HTTP 400 Bad Request from https://x", response=resp)
+        with mock.patch.object(collect_reddit, "get_json", side_effect=bad) as gj:
+            with self.assertRaises(requests.HTTPError):
+                collect_reddit.fetch_posts(object(), RD_CFG, "flow", None, ["salesforce"], 100)
+        self.assertEqual(gj.call_count, 1)
+
+    def test_search_uses_the_config_subreddits_unless_an_option_overrides_them(self):
+        since = datetime(2024, 11, 25, tzinfo=timezone.utc)
+        with mock.patch.object(collect_reddit, "fetch_posts", return_value=[RD_POST]) as fp:
+            collect_reddit.search(object(), RD_CFG, "flow", since)
+            self.assertEqual(fp.call_args.args[4], ["salesforce", "salesforceadmin"])
+            collect_reddit.search(object(), RD_CFG, "flow", since, subreddits=["sysadmin"])
+            self.assertEqual(fp.call_args.args[4], ["sysadmin"])
+        with self.assertRaises(ValueError):
+            collect_reddit.search(object(), {"reddit": dict(RD_CFG["reddit"], subreddits=[])}, "flow", since)
 
 
 if __name__ == "__main__":
