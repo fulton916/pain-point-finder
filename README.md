@@ -199,7 +199,7 @@ For IdeaExchange, make a file `data/ideaexchange.csv` with these columns (the fi
 title,url,points,votes,status,posted_date,comments
 ```
 
-One idea per line. `votes` is the score (1 vote = 10 points). Leave a cell empty if the site does not show it. Then run:
+One idea per line. `votes` is the score: the vote count shown on the idea's own page (roughly 1 vote = 10 points; the site's count is not exactly points / 10). Leave a cell empty if the site does not show it. Then run:
 
 ```powershell
 python import_ideaexchange.py
