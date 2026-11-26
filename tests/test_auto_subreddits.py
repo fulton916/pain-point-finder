@@ -155,6 +155,18 @@ class NameSearchFallbackTest(unittest.TestCase):
     def test_words_worth_a_lookup(self):
         self.assertEqual(collect_reddit.name_search_words(CFG, "the best sourdough starter for a sourdough"),
                          ["sourdough", "starter"])
+        self.assertEqual(collect_reddit.words_of("crème brûlée, VA_claim?"), ["crème", "brûlée", "va", "claim"])
+        capped = {"reddit": dict(CFG["reddit"], name_search_max_words=2)}
+        self.assertEqual(collect_reddit.name_search_words(capped, "one two three four"), ["one", "two"])
+        uncapped = {"reddit": dict(CFG["reddit"], name_search_max_words=0)}
+        self.assertEqual(len(collect_reddit.name_search_words(uncapped, "one two three four")), 4)
+
+    def test_config_skip_words_are_all_strings_and_cover_yaml_boolean_words(self):
+        """YAML reads bare on/off/yes/no as booleans; the config must quote them or they are not skipped."""
+        rd = load_config()["reddit"]
+        self.assertTrue(all(isinstance(w, str) for w in rd["name_search_skip_words"]), rd["name_search_skip_words"])
+        self.assertEqual(collect_reddit.name_search_words({"reddit": rd}, "tips on sourdough, yes or no"), ["sourdough"])
+        self.assertGreater(int(rd["name_search_max_words"]), 0)
         self.assertEqual(collect_reddit.name_search_words(CFG, "I am ok, x"), ["am", "ok"])  # one-letter words dropped
         no_list = {"reddit": {}}
         self.assertEqual(collect_reddit.name_search_words(no_list, "how is my sourdough"), ["sourdough"])

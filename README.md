@@ -114,7 +114,7 @@ Hacker News, GitHub and Stack Exchange all match the **title only** by default, 
 2. The archive's subreddit name search, when no topic matched: each useful word of the question (not `the`, `best`, `how` and the like, listed in `reddit.name_search_skip_words`) is looked up, 5 seconds apart, and the largest public, non-adult subreddits with at least `reddit.min_subscribers` (10,000) subscribers are searched, at most `reddit.auto_max` (3). It matches names only, so `veterans` finds r/Veterans but not r/VeteransBenefits; that is why the map comes first.
 3. `reddit.subreddits` (the Salesforce list), when the name search found nothing or the archive refused it.
 
-The header always says which subreddits were searched and which step chose them, for example `reddit (100 records, fetched; reddit searched r/running, r/RunningShoeGeeks (topic map in config.yaml matched 'running'))`. If the guess is wrong, run the search again with `--subreddits`. A cached answer (`cache`) was made with the same choice; the question is part of the cache key.
+The header always says which subreddits were searched and which step chose them, for example `reddit (100 records, fetched; reddit searched r/running, r/RunningShoeGeeks (topic map in config.yaml matched 'running'))`. If the guess is wrong, run the search again with `--subreddits`. A cached answer (`cache`) was made with the same choice and does not repeat it in the header; the question is part of the cache key, the topic map is not, so after editing `reddit.topics` run the question once with `--refresh`.
 
 ### What it prints
 

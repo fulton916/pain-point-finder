@@ -86,7 +86,8 @@ NAME_SEARCH_LIMIT = 25
 # Question words never sent to the name search when config.yaml has no reddit.name_search_skip_words.
 DEFAULT_SKIP_WORDS = {"a", "an", "the", "and", "or", "of", "to", "for", "in", "on", "with", "is", "are",
                       "how", "what", "why", "best", "vs", "my", "i"}
-_WORD = re.compile(r"[a-z0-9]+")
+# Letters and digits in any script (\w minus the underscore), so accented words survive.
+_WORD = re.compile(r"[^\W_]+")
 
 
 def permalink(post: dict) -> str:
@@ -196,7 +197,7 @@ def fetch_posts(session: requests.Session, cfg: dict, query: str, since: datetim
 
 
 def words_of(text: str) -> list[str]:
-    """Lower-case words (letters and digits) in order, repeats kept: "VA claim, rating?" -> va claim rating."""
+    """Lower-case words (letters and digits, any script) in order, repeats kept: "VA claim, rating?" -> va claim rating."""
     return _WORD.findall((text or "").lower())
 
 
@@ -221,11 +222,14 @@ def topic_subreddits(cfg: dict, query: str) -> tuple[list[str], list[str]]:
 
 def name_search_words(cfg: dict, query: str) -> list[str]:
     """Question words worth a name-search request: no repeats, no one-letter words, none from
-    reddit.name_search_skip_words (DEFAULT_SKIP_WORDS when config.yaml has no such list)."""
+    reddit.name_search_skip_words (DEFAULT_SKIP_WORDS when config.yaml has no such list), and at most
+    reddit.name_search_max_words of them (0 or missing = no cap)."""
     rd = cfg["reddit"]
     skip = rd.get("name_search_skip_words")
     skip = {str(w).lower() for w in (skip if skip is not None else DEFAULT_SKIP_WORDS)}
-    return [w for w in dict.fromkeys(words_of(query)) if len(w) > 1 and w not in skip]
+    words = [w for w in dict.fromkeys(words_of(query)) if len(w) > 1 and w not in skip]
+    cap = int(rd.get("name_search_max_words") or 0)
+    return words[:cap] if cap > 0 else words
 
 
 def name_search_subreddits(session: requests.Session, cfg: dict, words: list[str],
