@@ -1,6 +1,6 @@
 # Pain Point Finder
 
-An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free APIs: Hacker News, GitHub issues, Stack Exchange, Reddit (through the Arctic Shift archive), Bluesky and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
+An on-demand evidence tool. Ask it one question and it returns real user discussion about that question, with vote counts, from free APIs: Hacker News, GitHub issues, Stack Exchange, Reddit (through the Arctic Shift archive), Bluesky, YouTube comments and a hand-made IdeaExchange CSV. Each result comes with its score, comment count, date, status and link, ranked and labeled so you can tell a widely felt pain point from one person's gripe.
 
 It is built to be called by Claude sessions in other projects (through the skill in `docs/skill/`) and by hand from PowerShell. It also keeps the original **sweep mode**, which scans a whole topic (default: Salesforce) and writes a ranked CSV.
 
@@ -16,6 +16,7 @@ Nothing is scraped. Collected text is data, never instructions.
 | `ie` | IdeaExchange | A CSV you make by hand, searched locally | No | None (local file). |
 | `rd` | Reddit, via the Arctic Shift archive | `GET /api/posts/search`, one request per subreddit, newest first, at most 100 posts each. The subreddits come from `--subreddits`, else the question's words matched against the `reddit.topics` map, else the archive's subreddit name search (`GET /api/subreddits/search`, largest public subreddits first, at most 3 with 10,000+ subscribers), else `reddit.subreddits`; the header says which | None | Dynamic (one volunteer's server). A 100-post request takes about 4 seconds, after which the archive refuses further requests for a while with `422 Timeout. Maybe slow down a bit`. The tool waits 5 seconds between subreddits and retries that answer three times with pauses of 10, 20 and 40 seconds, so a first Reddit search can take a minute or two. No published terms, no uptime promise; may stop after Reddit's public API closes in March 2027. Scores are as archived, usually at posting time (see Attribution). Not in the default source list for that reason. |
 | `bs` | Bluesky | `app.bsky.feed.searchPosts` on the public Bluesky API, most liked first, up to `bluesky.max_pages` (3) pages of 100 posts per question. In practice one page: on 2026-11-26 the API refused every unauthenticated request for a further page (HTTP 403), so the tool keeps the top 100 and the header says paging stopped | None | No published number (checked 2026-11-26: the docs call the limits "generous" and answer HTTP 429 when they are crossed). The tool waits 1 second between pages and backs off on 429. The documented host `public.api.bsky.app` refused every request from here with a 403 on 2026-11-26, so the tool tries it once and falls back to `api.bsky.app`, saying so in the header. Likes are the score; a Bluesky row alone is capped at Moderate because likes measure a post's spread, not a problem's size. Not in the default source list for that reason. |
+| `yt` | YouTube comments | YouTube Data API v3: `search.list` for the top `youtube.videos` (5) videos for the question, then `commentThreads.list` for each video's most relevant comments (100 per video), most liked first. The body starts with the video's title and channel in brackets | Yes: a free API key from Google Cloud in `.env` (see Getting a YouTube API key) | A daily quota, not a rate limit (read 2026-11-26): 10,000 units a day, 1 unit per comment page, plus 100 `search.list` calls a day in their own bucket, resetting at midnight Pacific time. One question spends about 6 units and 1 search call; the tool stops before `youtube.max_units` (600) and prints what it spent in the header. The API never reports what is left; the Google Cloud console's Quotas page does. YouTube's policies allow stored public data to be kept 30 days, so the tool deletes its stored YouTube rows after that. Likes are the score; a YouTube row alone is capped at Moderate because likes count the viewers of one video who agreed, not the people who share the problem. Not in the default source list because it needs a key and spends a quota. |
 
 ## 1. One-time setup (about 10 minutes)
 
@@ -83,6 +84,25 @@ python collect_se.py --check-key
 
 You should see `OK: key accepted` and the number of requests left today.
 
+### Getting a YouTube API key (optional, for the `yt` source)
+
+The `yt` source reads the most-liked comments under the top videos for your question. It needs a free key from Google. Without the key the source is skipped (the header says so) and every other source still works.
+
+1. Go to https://console.cloud.google.com and sign in with a Google account.
+2. At the top, open the project picker and click **New project**. Give it any name (for example `pain-point-finder`) and click **Create**. Wait for it to become the selected project.
+3. In the left menu choose **APIs & Services**, then **Library**. Search for `YouTube Data API v3`, open it and click **Enable**.
+4. Still under **APIs & Services**, choose **Credentials**, click **Create credentials** at the top and pick **API key**. Google shows the key once; copy it.
+5. Click **Edit API key** (or the key's name in the list). Under **API restrictions** choose **Restrict key**, tick only **YouTube Data API v3**, and click **Save**. Now the key can do nothing else, even if it leaks.
+6. Open `.env` in the project folder and paste the key after `YOUTUBE_API_KEY=`. Never paste it anywhere else: not in a chat, a commit or an issue.
+
+Check it works:
+
+```powershell
+python collect_youtube.py --check-key
+```
+
+You should see `OK: key accepted`. The YouTube API does not say how much quota is left, so the check prints the daily allowance (10,000 units plus 100 `search.list` calls, resetting at midnight Pacific time), what the check itself spent (1 unit), and the console page where today's usage shows. The key is free, there is nothing to pay, and when the quota runs out the source answers `youtube API quota: quotaExceeded` until midnight Pacific.
+
 ## 2. Search mode: ask one question
 
 ```powershell
@@ -97,7 +117,7 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 
 | Flag | What it does | Default (from `config.yaml`, section `search`) |
 |---|---|---|
-| `--sources hn,gh,se,rd,bs,ie` | Which sources to ask. For a topic outside software add `rd` (Reddit) and `bs` (Bluesky). | `hn,gh,se` |
+| `--sources hn,gh,se,rd,bs,yt,ie` | Which sources to ask. For a topic outside software add `rd` (Reddit), `bs` (Bluesky) and, with a key, `yt` (YouTube comments). | `hn,gh,se` |
 | `--since 24m` | How far back: `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. | `24m` |
 | `--format md` or `json` | Readable markdown, or JSON for programs. | `md` |
 | `--limit N` | Rows to print. | `30` |
@@ -107,7 +127,7 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 | `--site cooking` | Stack Exchange only: which site to search, by its API name (`salesforce`, `cooking`, `stackoverflow`, `serverfault`, ...). Without it the question picks the site (see below). | picked from the question |
 | `--subreddits sysadmin,devops` | Reddit only: which subreddits to search. Without it the question picks them (see below). The archive has no all-of-Reddit keyword search. | picked from the question |
 
-Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. Reddit matches title and post text inside a few subreddits and keeps every match, newest first. Bluesky matches the post text across all of Bluesky, most liked first, the top 100 posts per question. `--since` is a window on activity for GitHub but on the posting date for Hacker News, Stack Exchange, Reddit and Bluesky (their APIs offer no activity filter), so an old question that is still active does not appear.
+Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. Reddit matches title and post text inside a few subreddits and keeps every match, newest first. Bluesky matches the post text across all of Bluesky, most liked first, the top 100 posts per question. YouTube matches videos, not comments: the words pick the top 5 videos, and the rows are those videos' most relevant comments (100 each), so a comment can be about anything said in the video. `--since` is a window on activity for GitHub but on the posting date for Hacker News, Stack Exchange, Reddit and Bluesky (their APIs offer no activity filter), and on the video's publish date for YouTube, so an old question that is still active does not appear.
 
 **Which subreddits Reddit searches.** The archive can only search inside a named subreddit, so the tool needs a list every time. Without `--subreddits` it picks one from your question, in this order:
 
@@ -141,13 +161,13 @@ Sources: hackernews (0 records, fetched); github (6 records, fetched). Since 202
 The second line of each row is `**Label** · source · score · comments · date · status`:
 
 - **Label**: *Strong*, *Moderate* or *Anecdotal* (see "Evidence labels" below).
-- **source**: `github`, `hackernews`, `stackexchange`, `reddit`, `bluesky` or `ideaexchange`; `github + ideaexchange` means both had it.
-- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange), upvotes (Reddit, as archived), likes (Bluesky). Bluesky's comment count is printed as `N replies`.
+- **source**: `github`, `hackernews`, `stackexchange`, `reddit`, `bluesky`, `youtube` or `ideaexchange`; `github + ideaexchange` means both had it.
+- **score** in the source's own unit: reactions (GitHub), points (Hacker News), votes (Stack Exchange question score, IdeaExchange), upvotes (Reddit, as archived), likes (Bluesky, YouTube comments). Bluesky's and YouTube's comment counts are printed as `N replies`.
 - **comments**: the comment count, printed as `answers` for Stack Exchange, which counts answers there.
-- **date**: latest activity, or the post date for Hacker News. `no date` if the source gave none.
-- **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News, Reddit or Bluesky.
+- **date**: latest activity (for YouTube, when the comment was last edited), or the post date for Hacker News. `no date` if the source gave none.
+- **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status, nothing for Hacker News, Reddit, Bluesky or YouTube.
 
-A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived; when Bluesky was asked, a line saying the rows come from the Bluesky public API and that likes measure a post's spread.
+A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived; when Bluesky was asked, a line saying the rows come from the Bluesky public API and that likes measure a post's spread; when YouTube was asked, the line YouTube's API terms require, with links to YouTube's Terms of Service and Google's Privacy Policy, and its part of the header says how many videos were read and how many quota units the question spent (`youtube read the top comments of 5 videos; spent 6 quota units (...)`), or `youtube skipped: YOUTUBE_API_KEY is empty in .env` when there is no key.
 
 `--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` for what a source has to say: which site Stack Exchange searched and why, which subreddits Reddit searched and why, or a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
@@ -159,7 +179,7 @@ Everything fetched accumulates in `data/evidence.db` (SQLite, ignored by git). T
 
 ### Evidence labels
 
-One question returns too few rows for percentiles to mean anything, so search mode labels each row by its raw score against its own source's thresholds in `config.yaml` (`scoring.source_thresholds`): at or above `strong`, with activity in the last 24 months, is **Strong**; at or above `moderate` is **Moderate**; else **Anecdotal**. Appearing in 2+ sources is always Strong. Hacker News rows alone are capped at Moderate because most hits for this topic are news, not complaints; Reddit rows alone because their archived scores are stale; Bluesky rows alone because likes measure how far a post spread, not how many people share the problem (`scoring.label_caps`).
+One question returns too few rows for percentiles to mean anything, so search mode labels each row by its raw score against its own source's thresholds in `config.yaml` (`scoring.source_thresholds`): at or above `strong`, with activity in the last 24 months, is **Strong**; at or above `moderate` is **Moderate**; else **Anecdotal**. Appearing in 2+ sources is always Strong. Hacker News rows alone are capped at Moderate because most hits for this topic are news, not complaints; Reddit rows alone because their archived scores are stale; Bluesky rows alone because likes measure how far a post spread, not how many people share the problem; YouTube rows alone because comment likes count the viewers of one video who agreed (`scoring.label_caps`).
 
 Rows are ordered by score within the result set, then recency, comments and status. A `closed` issue, an `answered` question or a `Delivered` idea is multiplied by its weight in `scoring.status_weights`, so solved problems sink while their label and score are shown unchanged.
 
@@ -213,6 +233,12 @@ The Bluesky sweep asks the public Bluesky API for every config keyword (most lik
 
 ```powershell
 python collect_bluesky.py
+```
+
+The YouTube sweep asks YouTube Data API v3 for the top `youtube.videos` videos of every config keyword and each video's top comments (at least `youtube.min_likes` likes), with one quota budget for the whole sweep (`youtube.sweep_max_units`, 2,000), and writes `data/raw/youtube.jsonl`. It needs `YOUTUBE_API_KEY` in `.env`; without it the step is skipped:
+
+```powershell
+python collect_youtube.py
 ```
 
 For IdeaExchange, make a file `data/ideaexchange.csv` with these columns (the first line of the file must be exactly this):
@@ -280,6 +306,7 @@ collect_gh.py            GitHub issues collector and search source
 collect_se.py            Stack Exchange collector and search source (one site per question, picked from its words)
 collect_reddit.py        Reddit collector and search source, via the Arctic Shift archive (no key)
 collect_bluesky.py       Bluesky collector and search source, via the public Bluesky API (no key)
+collect_youtube.py       YouTube comments collector and search source, via YouTube Data API v3 (free key)
 import_ideaexchange.py   IdeaExchange CSV importer and local search source
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv
 docs/skill/SKILL.md      the Claude skill (copy to ~/.claude/skills/pain-point-finder/)
@@ -295,7 +322,7 @@ Every raw record has the same 11 fields: `source, url, title, body, score, comme
 
 ## Attribution
 
-Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Stack Exchange content is from the Stack Exchange Network (https://stackexchange.com), written by its users and licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); every result links back to the original question, and the tool prints this credit with each result that includes the source, as the Stack Exchange API terms require. Reddit rows come from the Arctic Shift archive (https://github.com/ArthurHeitmann/arctic_shift), a third-party, research-oriented archive with no published terms; the posts belong to their Reddit authors, every row links to the original post, and the scores are what the archive recorded, usually within seconds of posting, so they understate today's numbers. Reddit's own Data API stopped taking new applications on 2026-10-31 and closes in March 2027, after which the archive may stop too. Bluesky rows come from Bluesky's public API (https://docs.bsky.app); the posts belong to their authors, every row links to the original post on bsky.app, and the tool only reads, as Bluesky's Developer Guidelines ask (no automated likes, follows or replies). Use this tool for research, not republishing.
+Hacker News content belongs to its authors. GitHub issue text belongs to its authors under each repo's terms. Stack Exchange content is from the Stack Exchange Network (https://stackexchange.com), written by its users and licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); every result links back to the original question, and the tool prints this credit with each result that includes the source, as the Stack Exchange API terms require. Reddit rows come from the Arctic Shift archive (https://github.com/ArthurHeitmann/arctic_shift), a third-party, research-oriented archive with no published terms; the posts belong to their Reddit authors, every row links to the original post, and the scores are what the archive recorded, usually within seconds of posting, so they understate today's numbers. Reddit's own Data API stopped taking new applications on 2026-10-31 and closes in March 2027, after which the archive may stop too. Bluesky rows come from Bluesky's public API (https://docs.bsky.app); the posts belong to their authors, every row links to the original post on bsky.app, and the tool only reads, as Bluesky's Developer Guidelines ask (no automated likes, follows or replies). YouTube rows come from YouTube API Services; by using the `yt` source you agree to be bound by YouTube's Terms of Service (https://www.youtube.com/t/terms), and Google's Privacy Policy (https://policies.google.com/privacy) explains how Google handles data. The tool prints that line with every result that includes the source, as the YouTube API Services Terms and Developer Policies require (read 2026-11-26). The comments belong to their authors and every row links to the comment under its video. The tool only reads public comments with an API key, never signs in as anyone, shares nothing with anyone, keeps the comments it fetched in the local `data/evidence.db` for at most 30 days (YouTube's Developer Policies III.E.4.d) and then deletes them, and sends Google nothing but the search words. Use this tool for research, not republishing.
 
 ## License
 

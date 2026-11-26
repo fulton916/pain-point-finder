@@ -31,6 +31,7 @@ import collect_gh
 import collect_hn
 import collect_reddit
 import collect_se
+import collect_youtube
 import common
 import import_ideaexchange
 import merge_and_score
@@ -46,9 +47,10 @@ SOURCES = {
     "se": collect_se,
     "rd": collect_reddit,
     "bs": collect_bluesky,
+    "yt": collect_youtube,
 }
 ALIASES = {"hackernews": "hn", "github": "gh", "ideaexchange": "ie", "stackexchange": "se", "reddit": "rd",
-           "bluesky": "bs"}
+           "bluesky": "bs", "youtube": "yt"}
 # What a score counts, per source, for the printed line.
 UNITS = {
     "hackernews": "points",
@@ -57,10 +59,11 @@ UNITS = {
     "stackexchange": "votes",
     "reddit": "upvotes",
     "bluesky": "likes",
+    "youtube": "likes",
 }
 # What the comments field counts when it is not comments (Stack Exchange stores answer_count there;
-# Bluesky stores replyCount).
-COMMENT_UNITS = {"stackexchange": "answers", "bluesky": "replies"}
+# Bluesky stores replyCount; YouTube stores totalReplyCount).
+COMMENT_UNITS = {"stackexchange": "answers", "bluesky": "replies", "youtube": "replies"}
 
 
 def parse_sources(text: str) -> list[str]:
@@ -121,7 +124,8 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
 
     all_records: list[dict] = []
     per_source: dict[str, dict] = {}
-    options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits}
+    # `store` lets a source clean up after itself (YouTube deletes its rows after 30 days, as its API policy asks).
+    options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits, "store": store}
     source_notes: list[str] = []  # sentences a source adds: what it searched (info) or what is missing (notes)
     for short in sources:
         mod = SOURCES[short]
@@ -129,7 +133,7 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
         records = None if refresh else store.cached(query, name, scope, float(search_cfg.get("cache_hours", 24)), now)
         from_cache = records is not None
         info: list[str] = []   # how the source chose what to search (Reddit: which subreddits; Stack Exchange: which site)
-        notes: list[str] = []  # part of the answer is missing (Reddit: a skipped subreddit)
+        notes: list[str] = []  # part of the answer is missing (Reddit: a skipped subreddit; YouTube: no key)
         if records is None:
             try:
                 records = mod.search(session, cfg, query, since, info=info, notes=notes, **options)
@@ -280,7 +284,7 @@ def cmd_sweep(args: argparse.Namespace, cfg: dict) -> int:
     # One failing API must not stop the others or the ranking; the raw file it wrote last time stays.
     for name, run in (("hackernews", lambda: collect_hn.main()), ("github", lambda: collect_gh.main([])),
                       ("stackexchange", lambda: collect_se.main([])), ("reddit", lambda: collect_reddit.main([])),
-                      ("bluesky", lambda: collect_bluesky.main([]))):
+                      ("bluesky", lambda: collect_bluesky.main([])), ("youtube", lambda: collect_youtube.main([]))):
         try:
             rc = run()
         except (requests.HTTPError, common.RateLimited, ValueError, RuntimeError) as e:
@@ -302,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("search", help="ask one question across the sources")
     s.add_argument("query", help="the words to search for")
-    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, ie (default from config.yaml)")
+    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, yt, ie (default from config.yaml)")
     s.add_argument("--since", help="24m, 30d, 8w, 2y or YYYY-MM-DD (default from config.yaml)")
     s.add_argument("--format", choices=["md", "json"], default="md")
     s.add_argument("--limit", type=int, help="rows to print (default from config.yaml)")

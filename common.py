@@ -47,7 +47,9 @@ log = logging.getLogger("ppf")
 STATS = {"requests": 0}
 
 # Secret values (API keys sent as query parameters) that must never appear in a log line or an
-# error message. A collector adds its key here; redact() masks them in anything we print.
+# error message. load_env() adds the values of SECRET_NAMES, a collector may add its key again;
+# redact() masks them in anything we print.
+SECRET_NAMES = ("GITHUB_TOKEN", "STACKEXCHANGE_KEY", "YOUTUBE_API_KEY")
 SECRETS: set[str] = set()
 
 
@@ -127,8 +129,13 @@ def load_config(path: str | Path = "config.yaml") -> dict[str, Any]:
 
 
 def load_env() -> None:
-    """Read .env from the project folder, if present. Keys are never logged."""
+    """Read .env from the project folder, if present. Keys are never logged: every key named in
+    SECRET_NAMES that has a value is added to SECRETS so redact() masks it."""
     load_dotenv(ROOT / ".env")
+    for name in SECRET_NAMES:
+        value = env(name)
+        if value:
+            SECRETS.add(value)
 
 
 def env(name: str) -> str:
