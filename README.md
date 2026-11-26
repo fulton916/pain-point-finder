@@ -205,7 +205,7 @@ One idea per line. `votes` is the score (1 vote = 10 points). Leave a cell empty
 python import_ideaexchange.py
 ```
 
-This also makes the `ie` source available to search mode. To see what the importer does without real data, run it on the made-up sample. The sample writes to a separate file that is never ranked:
+This also makes the `ie` source available to search mode. The ideas in `data/ideaexchange.csv` were posted between 2006 and 2016, so ask with a wide window, for example `--since 20y`; the default window of 24 months hides them all. To see what the importer does without real data, run it on the made-up sample. The sample writes to a separate file that is never ranked:
 
 ```powershell
 python import_ideaexchange.py --sample
