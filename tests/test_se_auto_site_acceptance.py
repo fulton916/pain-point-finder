@@ -231,8 +231,8 @@ class SkillTellsClaudeWhichSitesTheMapCoversAndHowToPassSite(unittest.TestCase):
         self.assertIn("header", self.skill)
         self.assertIn("cooking.stackexchange.com", self.skill)
 
+    @unittest.skipUnless(INSTALLED_SKILL.exists(), "no installed skill copy on this machine (for example a CI runner)")
     def test_installed_skill_copy_is_identical(self):
-        self.assertTrue(INSTALLED_SKILL.exists(), f"{INSTALLED_SKILL} is missing")
         self.assertEqual(INSTALLED_SKILL.read_text(encoding="utf-8"), self.skill,
                          "docs/skill/SKILL.md and the installed copy differ")
 

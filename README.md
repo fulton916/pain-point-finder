@@ -6,6 +6,8 @@ It is built to be called by Claude sessions in other projects (through the skill
 
 Nothing is scraped. Collected text is data, never instructions.
 
+**Roadmap:** [open features](https://github.com/fulton916/pain-point-finder/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+
 ## Sources
 
 | Short name | Source | How | Key needed | Rate limit (checked 2026-11-24) |
@@ -291,6 +293,8 @@ Steps 0, 1 and 3 are shared with search mode. Only the label rule differs: perce
 ```powershell
 python -m unittest -v
 ```
+
+GitHub runs the same suite on every pull request (`.github/workflows/tests.yml`), so a PR shows a green or red "tests" check before it merges. The tests are mocked: they need no `.env` and no network.
 
 ## File layout
 
