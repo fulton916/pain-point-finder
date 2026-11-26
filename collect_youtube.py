@@ -59,6 +59,7 @@ import requests
 
 from common import (
     SECRETS,
+    _rate_limit_wait,
     STATS,
     USER_AGENT,
     env,
@@ -87,12 +88,20 @@ QUOTAS_PAGE = "https://console.cloud.google.com/iam-admin/quotas"
 # Error reasons the API puts in its JSON body. A 403 means several different things here, so this module
 # reads the reason itself instead of treating every 403 as a rate limit (which common.get_json does).
 COMMENTS_DISABLED = "commentsDisabled"
+# Reasons that mean one video cannot be read (deleted or private since search.list answered, or its
+# comments withheld). The video is skipped, like one with comments disabled, instead of failing the run.
+VIDEO_SKIP_REASONS = {COMMENTS_DISABLED, "videoNotFound", "commentThreadNotFound", "forbidden"}
 QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "rateLimitExceeded", "userRateLimitExceeded"}
 _WARNED_NO_KEY = False
 
 
 class CommentsDisabled(Exception):
-    """The video has comments turned off (HTTP 403, reason commentsDisabled)."""
+    """This one video cannot be read: comments turned off (HTTP 403 commentsDisabled), the video gone
+    (404 videoNotFound) or its threads withheld (403 forbidden). `reason` says which."""
+
+    def __init__(self, reason: str, message: str = ""):
+        super().__init__(message or reason)
+        self.reason = reason
 
 
 class QuotaExceeded(RuntimeError):
@@ -183,16 +192,17 @@ def api_get(session: requests.Session, url: str, params: dict, max_tries: int = 
         if resp.status_code >= 500 or resp.status_code == 429:
             last_err = f"HTTP {resp.status_code}"
             if not last_try:
-                log.warning("youtube: %s, retry %d/%d in %.0fs", last_err, attempt, max_tries, delay)
-                time.sleep(delay)
+                wait = (_rate_limit_wait(resp) if resp.status_code == 429 else None) or delay
+                log.warning("youtube: %s, retry %d/%d in %.0fs", last_err, attempt, max_tries, wait)
+                time.sleep(wait)
                 delay = min(delay * 2, 60)
             continue
         if resp.status_code >= 400:
             reason, message = error_detail(resp)
-            if reason == COMMENTS_DISABLED:
-                raise CommentsDisabled(message or "comments are disabled")
+            if reason in VIDEO_SKIP_REASONS:
+                raise CommentsDisabled(reason, redact(message))
             if reason in QUOTA_REASONS:
-                raise QuotaExceeded(f"youtube API quota: {reason}: {message}".rstrip(": "))
+                raise QuotaExceeded(redact(f"youtube API quota: {reason}: {message}".rstrip(": ")))
             raise RuntimeError(redact(f"youtube API error HTTP {resp.status_code} {reason}: {message}".rstrip(": ")))
         try:
             data = resp.json()
@@ -255,7 +265,7 @@ def fetch_videos(session: requests.Session, cfg: dict, query: str, since: dateti
 
 def fetch_comments(session: requests.Session, cfg: dict, video: dict, key: str, budget: Budget) -> list[dict]:
     """Up to youtube.comments_per_video top-level comment threads for one video, one page of at most 100
-    per unit. Stops before max_units. Raises CommentsDisabled when the video has comments off."""
+    per unit. Stops before max_units. Raises CommentsDisabled when the video has comments off, is gone or is withheld."""
     yt = cfg["youtube"]
     wanted = max(1, int(yt.get("comments_per_video", 100)))
     threads: list[dict] = []
@@ -344,13 +354,17 @@ def collect(session: requests.Session, cfg: dict, query: str, since: datetime | 
     pairs: list[tuple[dict, dict]] = []
     read = disabled = 0
     for i, video in enumerate(videos):
+        if not budget.can_spend(1):
+            log.warning("youtube: stopping before max_units (%d): %d of %d videos not read", budget.max_units, len(videos) - i, len(videos))
+            break
         if i:
             time.sleep(float(yt.get("delay_seconds", 0.5)))
         try:
             threads = fetch_comments(session, cfg, video, key, budget)
-        except CommentsDisabled:
+        except CommentsDisabled as e:
             disabled += 1
-            log.info("youtube: comments are disabled on video %s (%s), skipped", video["video_id"], video["title"][:60])
+            what = "comments are disabled on" if e.reason == COMMENTS_DISABLED else f"{e.reason}: cannot read"
+            log.info("youtube: %s video %s (%s), skipped", what, video["video_id"], video["title"][:60])
             continue
         read += 1
         pairs.extend((t, video) for t in threads)
@@ -393,7 +407,7 @@ def search(session: requests.Session, cfg: dict, query: str, since: datetime, **
         return []
     budget = Budget(int(yt.get("max_units", 600)), int(yt.get("search_list_cost", 1)))
     records, read, disabled = collect(session, cfg, query, since, key, budget, int(yt.get("search_min_likes", 0)))
-    skipped = f", {disabled} skipped (comments disabled)" if disabled else ""
+    skipped = f", {disabled} skipped (comments disabled or video unavailable)" if disabled else ""
     why = f"youtube read the top comments of {read} video{'s' if read != 1 else ''}{skipped}; spent {budget.summary()}."
     log.info("youtube %r: %d records (since %s); spent %s", query, len(records), since.date() if since else "any date",
              budget.summary())

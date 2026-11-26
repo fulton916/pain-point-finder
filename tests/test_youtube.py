@@ -253,10 +253,12 @@ class UnitCountingTests(unittest.TestCase):
         session = FakeSession([video_item(f"v{i}") for i in range(5)], {f"v{i}": [{"items": [thread(i)]}] for i in range(5)})
         with env_key(), self.assertLogs("ppf", level="WARNING") as logs:
             records = collect_youtube.search(session, cfg, "x", SINCE)
-        # 1 search + 2 comment pages = 3 units; the third video would make 4.
+        # 1 search + 2 comment pages = 3 units; the third video would make 4. One warning, not one per video.
         self.assertEqual(len(session.calls), 3)
         self.assertEqual(len(records), 2)
-        self.assertTrue(any("stopping before max_units (3)" in line for line in logs.output))
+        stops = [line for line in logs.output if "stopping before max_units (3)" in line]
+        self.assertEqual(len(stops), 1, logs.output)
+        self.assertIn("3 of 5 videos not read", stops[0])
 
     def test_a_max_units_below_the_search_cost_sends_nothing(self):
         cfg = {"youtube": dict(CFG["youtube"], max_units=0)}
@@ -299,7 +301,28 @@ class ErrorHandlingTests(unittest.TestCase):
             records = collect_youtube.search(session, CFG, "x", SINCE, info=info)
         self.assertEqual([r["score"] for r in records], [7])
         self.assertTrue(any("comments are disabled on video v1" in line for line in logs.output))
-        self.assertIn("read the top comments of 1 video, 1 skipped (comments disabled)", info[0])
+        self.assertIn("read the top comments of 1 video, 1 skipped (comments disabled or video unavailable)", info[0])
+
+    def test_a_deleted_or_forbidden_video_is_skipped_not_a_failure(self):
+        session = FakeSession([video_item("v1"), video_item("v2"), video_item("v3")],
+                              {"v1": [api_error(404, "videoNotFound", "The video identified by the videoId parameter cannot be found.")],
+                               "v2": [api_error(403, "forbidden", "insufficient permissions")],
+                               "v3": [{"items": [thread(1, 7)]}]})
+        info: list[str] = []
+        with env_key(), self.assertLogs("ppf", level="INFO") as logs:
+            records = collect_youtube.search(session, CFG, "x", SINCE, info=info)
+        self.assertEqual([r["score"] for r in records], [7])
+        self.assertTrue(any("videoNotFound: cannot read video v1" in line for line in logs.output), logs.output)
+        self.assertIn("read the top comments of 1 video, 2 skipped", info[0])
+
+    def test_429_waits_for_retry_after(self):
+        slow = fake_response(429, {})
+        slow.headers = {"Retry-After": "7"}
+        session = mock.Mock()
+        session.get.side_effect = [slow, fake_response(200, {"items": []})]
+        with mock.patch.object(collect_youtube.time, "sleep") as sleep:
+            collect_youtube.api_get(session, "https://x/search", {"key": KEY})
+        self.assertEqual(sleep.call_args_list, [mock.call(8.0)])
 
     def test_quota_exceeded_raises_a_clear_error(self):
         session = FakeSession(api_error(403, "quotaExceeded", "The request cannot be completed because you have exceeded your quota."))
