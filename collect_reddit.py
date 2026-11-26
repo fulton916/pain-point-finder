@@ -50,7 +50,6 @@ views and status are empty: the archive has no activity date, view count or stat
 from __future__ import annotations
 
 import html
-import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -60,12 +59,14 @@ import requests
 from common import (
     RateLimited,
     get_json,
+    has_phrase,
     load_config,
     log,
     make_record,
     now_iso,
     setup_logging,
     validate_record,
+    words_of,
     write_jsonl,
 )
 
@@ -86,8 +87,6 @@ NAME_SEARCH_LIMIT = 25
 # Question words never sent to the name search when config.yaml has no reddit.name_search_skip_words.
 DEFAULT_SKIP_WORDS = {"a", "an", "the", "and", "or", "of", "to", "for", "in", "on", "with", "is", "are",
                       "how", "what", "why", "best", "vs", "my", "i"}
-# Letters and digits in any script (\w minus the underscore), so accented words survive.
-_WORD = re.compile(r"[^\W_]+")
 
 
 def permalink(post: dict) -> str:
@@ -196,22 +195,16 @@ def fetch_posts(session: requests.Session, cfg: dict, query: str, since: datetim
     return posts
 
 
-def words_of(text: str) -> list[str]:
-    """Lower-case words (letters and digits, any script) in order, repeats kept: "VA claim, rating?" -> va claim rating."""
-    return _WORD.findall((text or "").lower())
-
-
 def topic_subreddits(cfg: dict, query: str) -> tuple[list[str], list[str]]:
     """Subreddits from reddit.topics whose key appears in the question as whole words, ignoring case
     (a key with spaces must appear as that phrase), in config order with no repeats; and the keys that
-    matched. ([], []) when nothing matched or there is no topics map."""
+    matched. ([], []) when nothing matched or there is no topics map. (The Stack Exchange source picks
+    its site the same way from stackexchange.sites; the word matching is common.has_phrase.)"""
     words = words_of(query)
     subs: list[str] = []
     matched: list[str] = []
     for key, value in (cfg["reddit"].get("topics") or {}).items():
-        key_words = words_of(str(key))
-        n = len(key_words)
-        if n and any(words[i:i + n] == key_words for i in range(len(words) - n + 1)):
+        if has_phrase(words, str(key)):
             matched.append(str(key))
             for sub in value or []:
                 sub = str(sub).strip().removeprefix("r/")

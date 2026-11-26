@@ -90,9 +90,12 @@ def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only
         repos = gh.get("search_repos") or []
     if title_only is None:
         title_only = bool(hn.get("title_only", True))
-    site = site or cfg.get("stackexchange", {}).get("site", "")
-    # Without --subreddits the Reddit source chooses from the question (topic map, name search, config
-    # default), so the scope says so instead of naming a list that may not have been searched.
+    # Without --site the Stack Exchange source picks the site from the question (stackexchange.sites,
+    # then the config default), and without --subreddits the Reddit source chooses the same way (topic
+    # map, name search, config default), so the scope says "auto" instead of naming a site or list that
+    # may not have been searched. The question is in the cache key; the maps are not, so after editing
+    # a map the same question needs --refresh once.
+    site = site or "auto"
     subs = "auto" if subreddits is None else ",".join(subreddits)
     return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={subs}"
 
@@ -120,7 +123,7 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
         name = mod.SOURCE
         records = None if refresh else store.cached(query, name, scope, float(search_cfg.get("cache_hours", 24)), now)
         from_cache = records is not None
-        info: list[str] = []   # how the source chose what to search (Reddit: which subreddits and why)
+        info: list[str] = []   # how the source chose what to search (Reddit: which subreddits; Stack Exchange: which site)
         notes: list[str] = []  # part of the answer is missing (Reddit: a skipped subreddit)
         if records is None:
             try:
@@ -302,7 +305,9 @@ def build_parser() -> argparse.ArgumentParser:
     title = s.add_mutually_exclusive_group()
     title.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
     title.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")
-    s.add_argument("--site", help="Stack Exchange only: site to search, e.g. salesforce, stackoverflow (default from config.yaml)")
+    s.add_argument("--site", help="Stack Exchange only: site to search by its API name, e.g. salesforce, cooking, stackoverflow. "
+                   "Without it the question picks the site: the stackexchange.sites map in config.yaml (first matching word "
+                   "wins), else stackexchange.site; the header says which")
     s.add_argument("--subreddits", help="Reddit only: comma list of subreddits to search, e.g. salesforce,SalesforceDeveloper. "
                    "Without it the question picks them: the reddit.topics map in config.yaml, else the archive's subreddit "
                    "name search (largest first, at most 3), else reddit.subreddits; the header says which")
