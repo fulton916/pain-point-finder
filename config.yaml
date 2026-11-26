@@ -92,8 +92,58 @@ stackexchange:
   # API v2.3 advanced search. Terms pasted and cleared 2026-11-25: attribution required (CC BY-SA),
   # honor `backoff`, 10,000 requests/day per key, never more than 30 requests/second.
   endpoint: https://api.stackexchange.com/2.3/search/advanced
-  # Which site. salesforce = salesforce.stackexchange.com. Search mode: --site overrides this.
+  # Which site. salesforce = salesforce.stackexchange.com. Sweep mode and --check-key always use this.
+  # Search mode: --site wins; without it the question picks the site from the `sites` map below, and
+  # this is the fallback when no word matched.
   site: salesforce
+  # Search mode without --site: topic words -> api_site_parameter (the site's API name; the
+  # /2.3/sites endpoint lists 200 of them, checked 2026-11-25). A key matches when it appears in the
+  # question as whole words, ignoring case (a key with spaces must appear as that phrase), so
+  # "how to keep bread from going stale" matches `bread` and searches cooking.stackexchange.com.
+  # Only ONE site can be searched per question, so the FIRST matching key in this order wins: put the
+  # most specific words first and the vaguest (`flow`, which only means Salesforce here) last. The
+  # header and meta.note say which key matched. YAML reads bare yes, no, on, off as true/false, so
+  # quote such a word if one is ever added.
+  sites:
+    salesforce: salesforce
+    sfdc: salesforce
+    apex: salesforce
+    soql: salesforce
+    lwc: salesforce
+    trailhead: salesforce
+    cooking: cooking
+    recipe: cooking
+    recipes: cooking
+    bread: cooking
+    baking: cooking
+    running: fitness
+    workout: fitness
+    gym: fitness
+    money: money
+    budget: money
+    tax: money
+    taxes: money
+    "home repair": diy
+    plumbing: diy
+    travel: travel
+    flight: travel
+    flights: travel
+    visa: travel
+    law: law
+    legal: law
+    lawyer: law
+    "va claim": law
+    "va claims": law
+    parenting: parenting
+    garden: gardening
+    gardening: gardening
+    hiking: outdoors
+    camping: outdoors
+    bike: bicycles
+    bikes: bicycles
+    bicycle: bicycles
+    cycling: bicycles
+    flow: salesforce
   # Sweep mode: questions with a score below this are skipped.
   min_score: 5
   # Sweep mode: one query per tag (the site's tag names), or empty for the whole site's top questions.

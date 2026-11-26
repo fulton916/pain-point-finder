@@ -68,6 +68,24 @@ def clean_html(text: str) -> str:
     return html.unescape(_TAG.sub("", text)).strip()
 
 
+# Letters and digits in any script (\w minus the underscore), so accented words survive.
+_WORD = re.compile(r"[^\W_]+")
+
+
+def words_of(text: str) -> list[str]:
+    """Lower-case words (letters and digits, any script) in order, repeats kept: "VA claim, rating?" -> va claim rating."""
+    return _WORD.findall((text or "").lower())
+
+
+def has_phrase(words: list[str], phrase: str) -> bool:
+    """True when every word of `phrase` appears in `words` in that order, as whole words (so a one-word
+    phrase is a whole-word match and "va claim" needs both words next to each other). Case does not
+    matter: `words` comes from words_of and `phrase` goes through it here. An empty phrase never matches."""
+    key_words = words_of(phrase)
+    n = len(key_words)
+    return bool(n) and any(words[i:i + n] == key_words for i in range(len(words) - n + 1))
+
+
 def setup_logging(level: int = logging.INFO) -> None:
     # Windows consoles default to cp1252, which cannot print many titles (emoji, curly quotes).
     # Switch stdout and stderr to UTF-8 so output never crashes on a character.

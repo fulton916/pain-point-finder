@@ -12,7 +12,7 @@ Nothing is scraped. Collected text is data, never instructions.
 |---|---|---|---|---|
 | `hn` | Hacker News | Algolia HN Search API | No | 10,000 requests/hour per IP. The tool waits 1 second between requests. |
 | `gh` | GitHub issues | GitHub REST search API | Yes: a free, read-only fine-grained token in `.env` | 5,000 requests/hour with a token; search is 30 requests/minute and at most 1,000 results per query. The tool waits 2.5 seconds between pages and honors `Retry-After`. |
-| `se` | Stack Exchange | API v2.3 `/search/advanced`, one site at a time (default `salesforce`) | Optional: a free key from stackapps.com in `.env` | 10,000 requests/day with a key (300 without), never more than 30 requests/second, and the API may ask for a `backoff` pause which the tool honors. The tool waits 1 second between pages. Content is CC BY-SA 4.0 (see Attribution). |
+| `se` | Stack Exchange | API v2.3 `/search/advanced`, one site per question: `--site`, else a site picked from the question's words by the `stackexchange.sites` map (cooking, fitness, money, diy, travel, law, ...), else `salesforce`; the header says which | Optional: a free key from stackapps.com in `.env` | 10,000 requests/day with a key (300 without), never more than 30 requests/second, and the API may ask for a `backoff` pause which the tool honors. The tool waits 1 second between pages. Content is CC BY-SA 4.0 (see Attribution). |
 | `ie` | IdeaExchange | A CSV you make by hand, searched locally | No | None (local file). |
 | `rd` | Reddit, via the Arctic Shift archive | `GET /api/posts/search`, one request per subreddit, newest first, at most 100 posts each. The subreddits come from `--subreddits`, else the question's words matched against the `reddit.topics` map, else the archive's subreddit name search (`GET /api/subreddits/search`, largest public subreddits first, at most 3 with 10,000+ subscribers), else `reddit.subreddits`; the header says which | None | Dynamic (one volunteer's server). A 100-post request takes about 4 seconds, after which the archive refuses further requests for a while with `422 Timeout. Maybe slow down a bit`. The tool waits 5 seconds between subreddits and retries that answer three times with pauses of 10, 20 and 40 seconds, so a first Reddit search can take a minute or two. No published terms, no uptime promise; may stop after Reddit's public API closes in March 2027. Scores are as archived, usually at posting time (see Attribution). Not in the default source list for that reason. |
 
@@ -103,7 +103,7 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 | `--refresh` | Fetch again instead of using the cache. | off |
 | `--repos owner/name,owner/other` | GitHub only: search these repos instead of all of GitHub. | all of GitHub |
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only, or title and text. | title only |
-| `--site stackoverflow` | Stack Exchange only: which site to search, by its API name (`salesforce`, `stackoverflow`, `serverfault`, ...). | `salesforce` (section `stackexchange`) |
+| `--site cooking` | Stack Exchange only: which site to search, by its API name (`salesforce`, `cooking`, `stackoverflow`, `serverfault`, ...). Without it the question picks the site (see below). | picked from the question |
 | `--subreddits sysadmin,devops` | Reddit only: which subreddits to search. Without it the question picks them (see below). The archive has no all-of-Reddit keyword search. | picked from the question |
 
 Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. Reddit matches title and post text inside a few subreddits and keeps every match, newest first. `--since` is a window on activity for GitHub but on the posting date for Hacker News, Stack Exchange and Reddit (their APIs offer no activity filter), so an old question that is still active does not appear.
@@ -115,6 +115,13 @@ Hacker News, GitHub and Stack Exchange all match the **title only** by default, 
 3. `reddit.subreddits` (the Salesforce list), when the name search found nothing or the archive refused it.
 
 The header always says which subreddits were searched and which step chose them, for example `reddit (100 records, fetched; reddit searched r/running, r/RunningShoeGeeks (topic map in config.yaml matched 'running'))`. If the guess is wrong, run the search again with `--subreddits`. A cached answer (`cache`) was made with the same choice and does not repeat it in the header; the question is part of the cache key, the topic map is not, so after editing `reddit.topics` run the question once with `--refresh`.
+
+**Which Stack Exchange site it searches.** The Stack Exchange API searches one site per request, and the network has 200 of them (cooking, fitness, money, law, ...). Without `--site` the tool picks one from your question, in this order:
+
+1. The `stackexchange.sites` map in `config.yaml`: a topic word that appears in the question as a whole word, ignoring case, mapped to the site's API name. `how to keep bread from going stale` matches `bread` and searches cooking.stackexchange.com. As shipped the map covers cooking (`cooking`, `recipe`, `recipes`, `bread`, `baking`), fitness (`running`, `workout`, `gym`), money (`money`, `budget`, `tax`, `taxes`), diy (`home repair`, `plumbing`), travel (`travel`, `flight`, `flights`, `visa`), law (`law`, `legal`, `lawyer`, `va claim`, `va claims`), parenting (`parenting`), gardening (`garden`, `gardening`), outdoors (`hiking`, `camping`), bicycles (`bike`, `bikes`, `bicycle`, `cycling`) and salesforce (`salesforce`, `sfdc`, `apex`, `soql`, `lwc`, `trailhead`, `flow`). Only one site can be searched, so when several words match, the **first key in the map's order** wins: keep specific words near the top and vague ones (`flow`) at the bottom. Add a line when a topic comes up often; the API name is the `api_site_parameter` from https://api.stackexchange.com/2.3/sites (for most sites, the first part of the web address: `cooking` for cooking.stackexchange.com).
+2. `stackexchange.site` (`salesforce`), when no word matched.
+
+The header says which site was searched and why, for example `stackexchange (12 records, fetched; stackexchange searched cooking.stackexchange.com (site map in config.yaml matched 'bread'))`, or `... (config default: no word in stackexchange.sites matched)` when it fell back to Salesforce. If the guess is wrong, run the search again with `--site <api name>`. As with Reddit, a cached answer does not repeat the sentence, and after editing `stackexchange.sites` run the question once with `--refresh`.
 
 ### What it prints
 
@@ -141,7 +148,7 @@ The second line of each row is `**Label** · source · score · comments · date
 
 A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived.
 
-`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` for what a source has to say: which subreddits Reddit searched and why, or a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
+`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` for what a source has to say: which site Stack Exchange searched and why, which subreddits Reddit searched and why, or a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
 Exit code 0 is normal, even with no results. Exit code 2 means a bad flag or that every source failed.
 
@@ -263,7 +270,7 @@ config.yaml              search defaults, topic, keywords, repos, scoring weight
 common.py                shared helpers: retry, delays, record format, JSONL files
 collect_hn.py            Hacker News collector and search source
 collect_gh.py            GitHub issues collector and search source
-collect_se.py            Stack Exchange collector and search source (one site at a time)
+collect_se.py            Stack Exchange collector and search source (one site per question, picked from its words)
 collect_reddit.py        Reddit collector and search source, via the Arctic Shift archive (no key)
 import_ideaexchange.py   IdeaExchange CSV importer and local search source
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv

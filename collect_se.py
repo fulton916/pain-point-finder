@@ -25,6 +25,15 @@ Terms honored (pasted 2026-11-25, https://api.stackexchange.com/docs/throttle an
 The key goes only in the `key` query parameter, read from .env (STACKEXCHANGE_KEY). It is added to
 common.SECRETS so it never appears in a log line or an error message.
 
+Which site a search asks (search mode only; sweep mode and --check-key always use stackexchange.site):
+  1. --site, when given.
+  2. stackexchange.sites in config.yaml: a topic word that appears in the question as whole words,
+     ignoring case ("how to keep bread from going stale" matches `bread` -> cooking). The API searches
+     one site per request, so the first matching key in config order wins.
+  3. stackexchange.site, the config default (salesforce).
+  The sentence saying which step chose it goes to the caller's `info` list, so ppf.py prints it in the
+  header and meta.note and a wrong guess is obvious. The same shape as collect_reddit.choose_subreddits.
+
 Docs: https://api.stackexchange.com/docs/advanced-search
 """
 
@@ -43,6 +52,7 @@ from common import (
     clean_html,
     env,
     get_json,
+    has_phrase,
     load_config,
     load_env,
     log,
@@ -50,6 +60,7 @@ from common import (
     now_iso,
     setup_logging,
     validate_record,
+    words_of,
     write_jsonl,
 )
 
@@ -65,6 +76,54 @@ FILTER = "withbody"
 # so a backoff from /search/advanced does not stall an unrelated call.
 BACKOFF_UNTIL: dict[str, float] = {}
 _WARNED_NO_KEY = False
+# Sites whose web address is not <api_site_parameter>.stackexchange.com (the founding sites). Every
+# other api_site_parameter follows that pattern, including meta sites (meta.cooking.stackexchange.com
+# is `meta.cooking`). Used only for the header sentence; the API gets the bare parameter.
+SITE_HOSTS = {
+    "stackoverflow": "stackoverflow.com",
+    "serverfault": "serverfault.com",
+    "superuser": "superuser.com",
+    "askubuntu": "askubuntu.com",
+    "mathoverflow": "mathoverflow.net",
+    "meta.stackoverflow": "meta.stackoverflow.com",
+    "meta.serverfault": "meta.serverfault.com",
+    "meta.superuser": "meta.superuser.com",
+    "meta.askubuntu": "meta.askubuntu.com",
+    "meta.mathoverflow": "meta.mathoverflow.net",
+}
+
+
+def site_host(site: str) -> str:
+    """The site's web address for a human: cooking -> cooking.stackexchange.com, stackoverflow -> stackoverflow.com."""
+    return SITE_HOSTS.get(site, f"{site}.stackexchange.com")
+
+
+def topic_site(cfg: dict, query: str) -> tuple[str, str]:
+    """(site, key) for the first key of stackexchange.sites that appears in the question as whole words,
+    ignoring case (a key with spaces must appear as that phrase), in config order. ("", "") when nothing
+    matched or there is no sites map. One site per search is all the API allows, so order matters."""
+    words = words_of(query)
+    for key, value in (cfg["stackexchange"].get("sites") or {}).items():
+        if has_phrase(words, str(key)):
+            site = str(value or "").strip()
+            if site:
+                return site, str(key)
+    return "", ""
+
+
+def choose_site(cfg: dict, query: str, override: str | None = None) -> tuple[str, str]:
+    """Which site to search and one sentence saying how it was chosen: --site, the sites map in
+    config.yaml, or the config default."""
+    se = cfg["stackexchange"]
+    if override:
+        site = str(override).strip()
+        return site, f"stackexchange searched {site_host(site)} (from --site)."
+    site, key = topic_site(cfg, query)
+    if site:
+        return site, f"stackexchange searched {site_host(site)} (site map in config.yaml matched '{key}')."
+    site = str(se["site"]).strip()
+    return site, (f"stackexchange searched {site_host(site)} (config default: no word in stackexchange.sites "
+                  f"matched). Pass --site to choose yourself.")
 
 
 def key_param() -> dict[str, str]:
@@ -210,9 +269,15 @@ def items_to_records(items: list[dict], fetched_at: str, body_max_chars: int) ->
 
 
 def search(session: requests.Session, cfg: dict, query: str, since: datetime, **options) -> list[dict]:
-    """One question in, validated records out. Options: site (str, default from config)."""
+    """One question in, validated records out. Options: site (str; without it the stackexchange.sites
+    map, then stackexchange.site decide, see choose_site); info (list[str]): when given, the sentence
+    saying which site was searched and why is appended to it (ppf.py prints it in the header and
+    meta.note)."""
     se = cfg["stackexchange"]
-    site = options.get("site") or se["site"]
+    site, why = choose_site(cfg, query, options.get("site"))
+    log.info("%s", why)
+    if options.get("info") is not None:
+        options["info"].append(why)
     min_score = int(se.get("search_min_score", 0))
     items = fetch_items(session, cfg, query, since, site, min_score, int(se.get("search_max_pages", 2)),
                         se.get("search_in", "title"))
