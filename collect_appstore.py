@@ -119,9 +119,14 @@ def find_apps(session: requests.Session, cfg: dict, query: str) -> list[dict]:
 
 def lookup_apps(session: requests.Session, cfg: dict, ids: list[str]) -> list[dict]:
     """Names for the ids given with --apps, in the order given, from one Lookup API call. An id the
-    lookup does not return (or a failed lookup) keeps the id as its name, so the reviews are still read."""
+    lookup does not return (or a failed lookup) keeps the id as its name, so the reviews are still read.
+    An id that is not all digits cannot be an App Store id and is refused before any request."""
     a = cfg["appstore"]
     wanted = [str(i).strip() for i in ids if str(i).strip()]
+    bad = [i for i in wanted if not i.isdigit()]
+    if bad:
+        raise ValueError(f"appstore: --apps takes numeric app ids (the number after 'id' in an apps.apple.com link), "
+                         f"not {', '.join(bad)}")
     names: dict[str, str] = {}
     try:
         data, _ = get_json(session, str(a["lookup_endpoint"]),
@@ -162,7 +167,9 @@ def feed_url(cfg: dict, app_id: str, page: int) -> str:
 def _entries(data) -> list[dict]:
     """The feed's reviews: `feed.entry` is a list, a single object when there is one review, or absent."""
     feed = data.get("feed") if isinstance(data, dict) else None
-    entries = (feed or {}).get("entry")
+    if not isinstance(feed, dict):
+        return []
+    entries = feed.get("entry")
     if isinstance(entries, dict):
         entries = [entries]
     return [e for e in entries or [] if isinstance(e, dict)]

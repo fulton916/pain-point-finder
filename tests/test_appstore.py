@@ -250,6 +250,16 @@ class SearchTests(unittest.TestCase):
         recs = collect_appstore.search(s, CFG, "", SINCE, apps=["1234"])
         self.assertEqual(recs[0]["title"], "GPS drops every run [app 1234]")
 
+    def test_a_non_numeric_apps_id_is_refused_before_any_request(self):
+        s = session_for()
+        with self.assertRaises(ValueError):
+            collect_appstore.search(s, CFG, "gps", SINCE, apps=["strava", "1234"])
+        self.assertEqual(s.calls, [])
+
+    def test_a_feed_value_that_is_not_an_object_is_an_empty_page(self):
+        self.assertEqual(collect_appstore._entries({"feed": []}), [])
+        self.assertEqual(collect_appstore._entries({"feed": "error"}), [])
+
     def test_an_empty_feed_gives_no_records_and_no_error(self):
         s = session_for(pages={"426826309/1": None, "387771637/1": [], "291890420/1": None})
         info: list[str] = []
