@@ -76,26 +76,23 @@ FILTER = "withbody"
 # so a backoff from /search/advanced does not stall an unrelated call.
 BACKOFF_UNTIL: dict[str, float] = {}
 _WARNED_NO_KEY = False
-# Sites whose web address is not <api_site_parameter>.stackexchange.com (the founding sites). Every
-# other api_site_parameter follows that pattern, including meta sites (meta.cooking.stackexchange.com
-# is `meta.cooking`). Used only for the header sentence; the API gets the bare parameter.
-SITE_HOSTS = {
-    "stackoverflow": "stackoverflow.com",
-    "serverfault": "serverfault.com",
-    "superuser": "superuser.com",
-    "askubuntu": "askubuntu.com",
-    "mathoverflow": "mathoverflow.net",
-    "meta.stackoverflow": "meta.stackoverflow.com",
-    "meta.serverfault": "meta.serverfault.com",
-    "meta.superuser": "meta.superuser.com",
-    "meta.askubuntu": "meta.askubuntu.com",
-    "meta.mathoverflow": "meta.mathoverflow.net",
-}
+# Sites whose web address is <name>.com, not <name>.stackexchange.com: the founding sites and Stack
+# Apps, with their meta and language versions (meta.stackoverflow, es.stackoverflow). Every other
+# api_site_parameter is <name>.stackexchange.com, meta sites included (meta.cooking), except
+# mathoverflow.net, whose API name already is its address. Used only for the header sentence; the API
+# gets the bare parameter.
+DOT_COM_SITES = {"stackoverflow", "serverfault", "superuser", "askubuntu", "stackapps"}
 
 
 def site_host(site: str) -> str:
-    """The site's web address for a human: cooking -> cooking.stackexchange.com, stackoverflow -> stackoverflow.com."""
-    return SITE_HOSTS.get(site, f"{site}.stackexchange.com")
+    """The site's web address for a human: cooking -> cooking.stackexchange.com, stackoverflow ->
+    stackoverflow.com, es.stackoverflow -> es.stackoverflow.com, mathoverflow.net stays as it is (so does
+    a full address passed to --site)."""
+    if site.rsplit(".", 1)[-1] in ("com", "net"):
+        return site
+    if site.rsplit(".", 1)[-1] in DOT_COM_SITES:
+        return f"{site}.com"
+    return f"{site}.stackexchange.com"
 
 
 def topic_site(cfg: dict, query: str) -> tuple[str, str]:
@@ -115,8 +112,8 @@ def choose_site(cfg: dict, query: str, override: str | None = None) -> tuple[str
     """Which site to search and one sentence saying how it was chosen: --site, the sites map in
     config.yaml, or the config default."""
     se = cfg["stackexchange"]
-    if override:
-        site = str(override).strip()
+    site = str(override or "").strip()
+    if site:
         return site, f"stackexchange searched {site_host(site)} (from --site)."
     site, key = topic_site(cfg, query)
     if site:

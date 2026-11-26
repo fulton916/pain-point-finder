@@ -113,8 +113,15 @@ class ChooseSiteTest(unittest.TestCase):
         self.assertEqual(collect_se.site_host("cooking"), "cooking.stackexchange.com")
         self.assertEqual(collect_se.site_host("salesforce"), "salesforce.stackexchange.com")
         self.assertEqual(collect_se.site_host("stackoverflow"), "stackoverflow.com")
-        self.assertEqual(collect_se.site_host("mathoverflow"), "mathoverflow.net")
+        self.assertEqual(collect_se.site_host("mathoverflow.net"), "mathoverflow.net")
+        self.assertEqual(collect_se.site_host("meta.stackoverflow"), "meta.stackoverflow.com")
+        self.assertEqual(collect_se.site_host("es.stackoverflow"), "es.stackoverflow.com")
         self.assertEqual(collect_se.site_host("meta.cooking"), "meta.cooking.stackexchange.com")
+        self.assertEqual(collect_se.site_host("cooking.stackexchange.com"), "cooking.stackexchange.com")
+
+    def test_blank_site_option_counts_as_absent(self):
+        self.assertEqual(collect_se.choose_site(CFG, "bread recipe", "  ")[0], "cooking")
+        self.assertEqual(collect_se.choose_site(CFG, "bread recipe", None)[0], "cooking")
 
 
 class SearchTest(unittest.TestCase):
