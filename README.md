@@ -199,13 +199,13 @@ For IdeaExchange, make a file `data/ideaexchange.csv` with these columns (the fi
 title,url,points,votes,status,posted_date,comments
 ```
 
-One idea per line. `votes` is the score (1 vote = 10 points). Leave a cell empty if the site does not show it. Then run:
+One idea per line. `votes` is the score: the vote count shown on the idea's own page (roughly 1 vote = 10 points; the site's count is not exactly points / 10). Leave a cell empty if the site does not show it. Then run:
 
 ```powershell
 python import_ideaexchange.py
 ```
 
-This also makes the `ie` source available to search mode. To see what the importer does without real data, run it on the made-up sample. The sample writes to a separate file that is never ranked:
+This also makes the `ie` source available to search mode. The ideas in `data/ideaexchange.csv` were posted between 2006 and 2016, so ask with a wide window, for example `--since 20y`; the default window of 24 months hides them all. To see what the importer does without real data, run it on the made-up sample. The sample writes to a separate file that is never ranked:
 
 ```powershell
 python import_ideaexchange.py --sample
