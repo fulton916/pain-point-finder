@@ -104,6 +104,18 @@ class Store:
         self.conn.commit()
         return inserted, updated
 
+    def purge(self, source: str, fetched_before: str) -> int:
+        """Delete one source's records fetched before an ISO datetime, and the query hits that pointed at
+        them. Returns how many records went. YouTube's API policy allows public data to be kept 30 days."""
+        self.conn.execute(
+            "DELETE FROM query_hits WHERE source = ? AND url IN "
+            "(SELECT url FROM records WHERE source = ? AND fetched_at < ?)",
+            (source, source, fetched_before),
+        )
+        cur = self.conn.execute("DELETE FROM records WHERE source = ? AND fetched_at < ?", (source, fetched_before))
+        self.conn.commit()
+        return cur.rowcount
+
     def counts(self) -> dict[str, int]:
         rows = self.conn.execute("SELECT source, COUNT(*) AS n FROM records GROUP BY source ORDER BY source").fetchall()
         return {r["source"]: r["n"] for r in rows}

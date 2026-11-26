@@ -7,7 +7,8 @@
 search:
   # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), rd (Reddit via the
   # Arctic Shift archive; not in the default list because its scores are stale), bs (Bluesky; not in the
-  # default list because likes measure a post's spread, not a problem's size), ie (IdeaExchange CSV, local).
+  # default list because likes measure a post's spread, not a problem's size), yt (YouTube comments; needs
+  # a key and spends a daily quota, so not in the default list), ie (IdeaExchange CSV, local).
   default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
@@ -45,6 +46,7 @@ paths:
     - data/raw/stackexchange.jsonl
     - data/raw/reddit.jsonl
     - data/raw/bluesky.jsonl
+    - data/raw/youtube.jsonl
     - data/raw/ideaexchange.jsonl
 
 hacker_news:
@@ -279,6 +281,39 @@ bluesky:
   # How many characters of the post text to keep as the body. Bluesky posts are 300 characters at most.
   body_max_chars: 2000
 
+youtube:
+  # YouTube Data API v3, read-only: search.list for the top videos, then commentThreads.list for each
+  # video's most relevant comments. Needs YOUTUBE_API_KEY in .env (free, see README). Quota read from
+  # developers.google.com/youtube/v3/determine_quota_cost on 2026-11-26: 10,000 units a day for most
+  # methods (a commentThreads page costs 1), and search.list has its own bucket of 100 calls a day at 1
+  # unit each (it used to cost 100 units from the shared pool; search_list_cost below follows the docs).
+  # Everything resets at midnight Pacific time. The API never says how much is left; the Cloud console does.
+  endpoint: https://www.googleapis.com/youtube/v3
+  # Videos per question (search.list maxResults, 1 to 50). Each video is at least one comment page (1 unit).
+  videos: 5
+  # Top-level comments per video, most relevant first. Up to 100 per page; above 100 means more pages.
+  comments_per_video: 100
+  # What one search.list call counts as in the unit total. 1 per the docs (own bucket, 100 calls a day).
+  search_list_cost: 1
+  # Search mode: stop before a question spends more than this many units. The total is logged and printed
+  # in the header. With the defaults a question spends 1 + 5 = 6 units.
+  max_units: 600
+  # Sweep mode: one budget for the whole sweep (every keyword).
+  sweep_max_units: 2000
+  # Seconds between videos and between comment pages. No rate limit is published beyond the daily quota.
+  delay_seconds: 0.5
+  # Search mode: keep comments with at least this many likes. 0 keeps every comment.
+  search_min_likes: 0
+  # Sweep mode: comments with fewer likes are skipped.
+  min_likes: 5
+  # The record title is the first title_chars characters of the comment, on one line.
+  title_chars: 120
+  # How many characters of the body ([video title (channel)] + comment text) to keep.
+  body_max_chars: 2000
+  # YouTube's Developer Policies (III.E.4.d, read 2026-11-26) allow public API data to be stored for at
+  # most 30 calendar days. Every yt search deletes stored YouTube rows fetched more than this many days ago.
+  store_days: 30
+
 ideaexchange:
   csv_path: data/ideaexchange.csv
   # Clearly labeled made-up rows used only to test the importer.
@@ -312,6 +347,9 @@ scoring:
     # Likes measure how far a short post spread, not how many people share the problem, so a Bluesky
     # row alone never counts as Strong either.
     bluesky: Moderate
+    # Likes on a comment count the viewers of one video who agreed, not the people who share the problem,
+    # so a YouTube row alone never counts as Strong.
+    youtube: Moderate
   # ---- search mode only: labels from raw score thresholds, not percentiles ----
   # One question's results are too few for percentiles to mean anything, so search mode
   # labels a row by its raw score against its own source: at or above `strong` (with
@@ -328,6 +366,8 @@ scoring:
                                                   # r/salesforce (24 months) had p75 = 7, p90 = 32, max 195.
     bluesky:       {moderate: 10,  strong: 50}    # likes. Checked 2026-11-26: the top two "running shoes" posts of the
                                                   # last 3 months had 41 and 54 likes; most matches have a handful.
+    youtube:       {moderate: 20,  strong: 200}   # comment likes (issue #25). Popular videos' top comments run
+                                                  # into the hundreds or thousands; most comments have a handful.
   # ---- both modes ----
   # final_score is multiplied by the weight for the row's status (matched ignoring case).
   # A problem the vendor already solved is less worth building for, so it sinks. The status
