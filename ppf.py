@@ -91,9 +91,10 @@ def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only
     if title_only is None:
         title_only = bool(hn.get("title_only", True))
     site = site or cfg.get("stackexchange", {}).get("site", "")
-    if subreddits is None:
-        subreddits = cfg.get("reddit", {}).get("subreddits") or []
-    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={','.join(subreddits)}"
+    # Without --subreddits the Reddit source chooses from the question (topic map, name search, config
+    # default), so the scope says so instead of naming a list that may not have been searched.
+    subs = "auto" if subreddits is None else ",".join(subreddits)
+    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={subs}"
 
 
 def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refresh: bool, limit: int,
@@ -113,16 +114,17 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
     all_records: list[dict] = []
     per_source: dict[str, dict] = {}
     options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits}
-    source_notes: list[str] = []  # sentences a source adds when part of its results is missing
+    source_notes: list[str] = []  # sentences a source adds: what it searched (info) or what is missing (notes)
     for short in sources:
         mod = SOURCES[short]
         name = mod.SOURCE
         records = None if refresh else store.cached(query, name, scope, float(search_cfg.get("cache_hours", 24)), now)
         from_cache = records is not None
-        notes: list[str] = []
+        info: list[str] = []   # how the source chose what to search (Reddit: which subreddits and why)
+        notes: list[str] = []  # part of the answer is missing (Reddit: a skipped subreddit)
         if records is None:
             try:
-                records = mod.search(session, cfg, query, since, notes=notes, **options)
+                records = mod.search(session, cfg, query, since, info=info, notes=notes, **options)
             except (requests.HTTPError, common.RateLimited, ValueError, RuntimeError) as e:
                 log.error("%s failed: %s", name, e)
                 per_source[name] = {"records": 0, "from_cache": False, "error": str(e)}
@@ -135,9 +137,9 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
                 store.log_query(query, name, scope, now.isoformat(), records)
             log.info("%s: %d new records stored, %d updated", name, inserted, updated)
         per_source[name] = {"records": len(records), "from_cache": from_cache}
-        if notes:
-            per_source[name]["note"] = " ".join(notes)
-            source_notes.extend(notes)
+        if info or notes:
+            per_source[name]["note"] = " ".join(info + notes)
+            source_notes.extend(info + notes)
         all_records.extend(records)
     store_counts = store.counts()
     if own_store:
@@ -200,7 +202,8 @@ def format_md(result: dict) -> str:
             parts.append(f"{name} (failed: {info['error']})")
         else:
             part = f"{name} ({info['records']} records, {'cache' if info['from_cache'] else 'fetched'}"
-            parts.append(part + (f"; {info['note']}" if info.get("note") else "") + ")")
+            # The note's sentences end in periods; inside the parentheses the last one is dropped.
+            parts.append(part + (f"; {info['note'].rstrip('.')}" if info.get("note") else "") + ")")
     lines = [
         f"# Pain Point Finder: \"{m['query']}\"",
         "",
@@ -300,7 +303,9 @@ def build_parser() -> argparse.ArgumentParser:
     title.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
     title.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")
     s.add_argument("--site", help="Stack Exchange only: site to search, e.g. salesforce, stackoverflow (default from config.yaml)")
-    s.add_argument("--subreddits", help="Reddit only: comma list of subreddits to search instead of the config list, e.g. salesforce,SalesforceDeveloper")
+    s.add_argument("--subreddits", help="Reddit only: comma list of subreddits to search, e.g. salesforce,SalesforceDeveloper. "
+                   "Without it the question picks them: the reddit.topics map in config.yaml, else the archive's subreddit "
+                   "name search (largest first, at most 3), else reddit.subreddits; the header says which")
     s.set_defaults(func=cmd_search)
 
     w = sub.add_parser("sweep", help="batch mode: every config keyword and repo, then rank to data/output")
