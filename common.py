@@ -236,14 +236,14 @@ def get_json(
             continue
 
         if resp.status_code in (403, 429):
+            if attempt == max_tries:
+                raise RateLimited(redact(f"gave up after {max_tries} tries: {resp.status_code} {resp.text[:200]}"))
             wait = _rate_limit_wait(resp) or delay
             remaining = resp.headers.get("X-RateLimit-Remaining")
             log.warning(
                 "HTTP %s (rate limit remaining=%s). Waiting %.0fs, retry %d/%d",
                 resp.status_code, remaining, wait, attempt, max_tries,
             )
-            if attempt == max_tries:
-                raise RateLimited(redact(f"gave up after {max_tries} tries: {resp.status_code} {resp.text[:200]}"))
             time.sleep(wait)
             delay = min(delay * 2, 60)
             continue

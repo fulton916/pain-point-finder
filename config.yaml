@@ -6,7 +6,8 @@
 # ---------- search mode: python ppf.py search "<question>" ----------
 search:
   # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), rd (Reddit via the
-  # Arctic Shift archive; not in the default list because its scores are stale), ie (IdeaExchange CSV, local).
+  # Arctic Shift archive; not in the default list because its scores are stale), bs (Bluesky; not in the
+  # default list because likes measure a post's spread, not a problem's size), ie (IdeaExchange CSV, local).
   default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
@@ -43,6 +44,7 @@ paths:
     - data/raw/github.jsonl
     - data/raw/stackexchange.jsonl
     - data/raw/reddit.jsonl
+    - data/raw/bluesky.jsonl
     - data/raw/ideaexchange.jsonl
 
 hacker_news:
@@ -247,6 +249,36 @@ reddit:
   # How many characters of the post text to keep.
   body_max_chars: 2000
 
+bluesky:
+  # Bluesky's public AppView API, app.bsky.feed.searchPosts. No key. Checked 2026-11-26: the docs name
+  # public.api.bsky.app (a cached copy) as the host for unauthenticated reads, publish no request limit
+  # for it ("generous rate-limits", HTTP 429 when crossed) and ask developers not to automate likes,
+  # follows or replies; this collector only reads. On 2026-11-26 public.api.bsky.app answered every
+  # request from here with an HTML 403 from its CDN, so the first page is tried there once and, when
+  # it refuses (403, 429 or no connection), the run moves to fallback_endpoint and the header says so.
+  # Remove the fallback line to never leave the documented host.
+  endpoint: https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts
+  fallback_endpoint: https://api.bsky.app/xrpc/app.bsky.feed.searchPosts
+  # top = most liked first (what we want), latest = newest first.
+  sort: top
+  # Posts per page. The API allows 1 to 100.
+  limit: 100
+  # Pages per question (search mode) and per keyword (sweep mode). Each page is one request; paging
+  # stops early when the API sends no cursor or an empty page. Pages after the first get one try each:
+  # on 2026-11-26 api.bsky.app refused every request that carried a cursor with HTTP 403 "forbidden by
+  # administrative rules", so a question gets its top 100 posts and the header says paging stopped.
+  max_pages: 3
+  # Seconds between pages. No published limit, so stay polite.
+  delay_seconds: 1.0
+  # Search mode: keep posts with at least this many likes. 0 keeps every match.
+  search_min_likes: 0
+  # Sweep mode: posts with fewer likes are skipped.
+  min_likes: 5
+  # The record title is the first title_chars characters of the post text, on one line.
+  title_chars: 120
+  # How many characters of the post text to keep as the body. Bluesky posts are 300 characters at most.
+  body_max_chars: 2000
+
 ideaexchange:
   csv_path: data/ideaexchange.csv
   # Clearly labeled made-up rows used only to test the importer.
@@ -277,6 +309,9 @@ scoring:
     # Arctic Shift scores are usually the score at posting time (retrieved seconds after creation),
     # so a Reddit row alone never counts as Strong.
     reddit: Moderate
+    # Likes measure how far a short post spread, not how many people share the problem, so a Bluesky
+    # row alone never counts as Strong either.
+    bluesky: Moderate
   # ---- search mode only: labels from raw score thresholds, not percentiles ----
   # One question's results are too few for percentiles to mean anything, so search mode
   # labels a row by its raw score against its own source: at or above `strong` (with
@@ -291,6 +326,8 @@ scoring:
     ideaexchange:  {moderate: 100, strong: 500}   # votes (1 vote = 10 points)
     reddit:        {moderate: 10,  strong: 50}    # archived score. Checked 2026-11-25: the newest 100 "flow" posts in
                                                   # r/salesforce (24 months) had p75 = 7, p90 = 32, max 195.
+    bluesky:       {moderate: 10,  strong: 50}    # likes. Checked 2026-11-26: the top two "running shoes" posts of the
+                                                  # last 3 months had 41 and 54 likes; most matches have a handful.
   # ---- both modes ----
   # final_score is multiplied by the weight for the row's status (matched ignoring case).
   # A problem the vendor already solved is less worth building for, so it sinks. The status
