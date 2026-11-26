@@ -238,10 +238,11 @@ def fetch_posts(session: requests.Session, cfg: dict, query: str, since: datetim
                 if info is not None:
                     info.append(why)
                 break
-        batch = (data or {}).get("posts") or []
+        data = data if isinstance(data, dict) else {}  # anything but an object is an empty page
+        batch = data.get("posts") or []
         posts.extend(p for p in batch if isinstance(p, dict))
         log.info("bluesky %r page %d: %d posts (%s)", query, page, len(batch), host_of(endpoint))
-        cursor = str((data or {}).get("cursor") or "")
+        cursor = str(data.get("cursor") or "")
         if not cursor or not batch:
             break
     return posts
