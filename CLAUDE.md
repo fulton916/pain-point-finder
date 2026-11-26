@@ -54,6 +54,7 @@ import_ideaexchange.py   IdeaExchange CSV importer and local search()
 merge_and_score.py       dedupe, normalize, weight, label
 docs/skill/SKILL.md      the Claude skill (keep ~/.claude/skills/pain-point-finder/SKILL.md identical)
 tests/                   unittest suite
+.claude/agents/tester.md the tester agent: acceptance tests from an issue's "Done when" lines, run before a PR opens
 data/raw/                one JSONL file per source (gitignored)
 data/output/             ranked.csv, merge_log.csv, themes.md
 README.md                how to run it, in plain steps; search mode first, sweep second
