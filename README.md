@@ -261,6 +261,7 @@ import_ideaexchange.py   IdeaExchange CSV importer and local search source
 merge_and_score.py       dedupe, normalize, weight, label, write ranked.csv
 docs/skill/SKILL.md      the Claude skill (copy to ~/.claude/skills/pain-point-finder/)
 tests/                   unit tests for the scorer, the collectors, the store and the CLI
+.claude/agents/tester.md the tester agent: writes acceptance tests from an issue's "Done when" lines before a PR opens
 data/ideaexchange.sample.csv   made-up rows for testing the importer only
 data/evidence.db         the SQLite store (ignored by git)
 data/raw/                one JSONL file per source (ignored by git)

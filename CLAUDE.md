@@ -124,3 +124,4 @@ Long-range items. Open an issue when one is about to start.
 - Every change goes through a branch and a pull request. The PR body starts with `Closes #N`.
 - Collectors share `common.py` and `config.yaml`, so work on one collector at a time.
 - When `docs/skill/SKILL.md` changes, copy it to `~/.claude/skills/pain-point-finder/SKILL.md` in the same PR's session so the two stay identical.
+- Before opening a PR, run the `tester` agent (`.claude/agents/tester.md`) with the issue's text and its "Done when" lines, then fix what it finds. Its tests (`tests/test_<feature>_acceptance.py`) stay in the PR.
