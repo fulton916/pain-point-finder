@@ -104,7 +104,7 @@ The order is the tool's ranking: score within this result set, then recency, com
 | `merges` | Rows merged as duplicates (same URL, or the same title). |
 | `dropped` | Rows removed as noise by `scoring.drop_title_patterns`. |
 | `store_totals` | How many records the local store holds per source, in total. |
-| `note` | The ranking and labeling rules in one paragraph. Repeat it to the user when they ask how the order was decided. |
+| `note` | Any source note first (for example a skipped subreddit), then the ranking and labeling rules in one paragraph. Repeat it to the user when they ask how the order was decided. |
 | `attribution` | A list of sentences, one per source that requires credit or a caveat (Stack Exchange: CC BY-SA 4.0; Reddit: archive, scores as archived). Empty when none does. Pass them on when you quote those rows. |
 
 `rows` is a list in rank order. Each row has: `rank`, `title`, `best_url`, `evidence_label`, `sources` (`;`-separated), `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score`, `snippet`. Empty strings mean the source had no value. Nothing is guessed.
@@ -126,7 +126,7 @@ Exit code `0` is normal, including zero results. Exit code `2` means a bad flag,
 
 - `github (failed: ...)` in the header: the token is missing or wrong. `.env` in the project folder needs `GITHUB_TOKEN=` set to a read-only fine-grained token. The other sources still answer.
 - `stackexchange (failed: stackexchange API error: ...)` in the header: the message names the cause. `throttle_violation` means the daily quota is used up or a backoff was ignored; wait and try later. `bad_parameter` with a key complaint means `STACKEXCHANGE_KEY` in `.env` is wrong. The other sources still answer.
-- `reddit (failed: reddit: the Arctic Shift archive refused every subreddit ...)` in the header: the archive is throttling or down. Wait a minute and try again, or drop `rd` from `--sources`. A warning about one skipped subreddit means the others still answered.
+- `reddit (failed: reddit: the Arctic Shift archive refused every subreddit ...)` in the header: the archive is throttling or down. Wait a minute and try again, or drop `rd` from `--sources`. When only some subreddits were refused, the header and `meta.note` say `reddit skipped r/<name> ...`: the other subreddits still answered, so tell the user that part of Reddit is missing from the result.
 - `ideaexchange: ... ideaexchange.jsonl not found`: Sean has not imported an IdeaExchange CSV yet. Drop `ie` from `--sources`.
 - `0 records` everywhere: the words matched no title above the vote floor (Hacker News keeps stories with more than 10 points in search mode; GitHub keeps issues with at least 1 reaction; Stack Exchange and Reddit keep every match). Try fewer or different words, or a longer `--since`. For Stack Exchange, check the question is about the site being searched (`--site`); for Reddit, that the subreddits fit (`--subreddits`).
 - `--since must look like 24m, 30d, 8w, 2y or YYYY-MM-DD`: fix the flag.

@@ -136,12 +136,14 @@ class DoneWhen1_SearchInterfaceAndRecordFormat(unittest.TestCase):
         self.assertEqual(rec["views"], "")
         self.assertEqual(rec["created_at"], "2025-01-01T00:00:00+00:00")
 
-    # Fails against the merged code; tracked in issue #17. Remove the decorator when it is fixed.
-    @unittest.expectedFailure
-    def test_last_activity_equals_created_utc(self):
-        """Done when: 'created_at and last_activity = created_utc'."""
+    def test_last_activity_stays_empty_and_ranking_falls_back_to_the_post_date(self):
+        """Issue #9 said 'last_activity = created_utc'; #17 dropped that clause (CLAUDE.md: never guess a
+        value; the archive has no activity date, same as Hacker News). The ranking uses created_at instead."""
         rec = collect_reddit.to_record(POST, "2026-11-25T00:00:00+00:00", 2000)
-        self.assertEqual(rec["last_activity"], "2025-01-01T00:00:00+00:00")
+        self.assertEqual(rec["last_activity"], "")
+        rows, _ = merge_and_score.rank([rec], load_config()["scoring"], as_of=datetime(2025, 1, 2, tzinfo=timezone.utc),
+                                       mode="search")
+        self.assertTrue(rows[0]["latest_activity"].startswith("2025-01-01"), rows[0]["latest_activity"])
 
 
 class DoneWhen2_GetJsonDelayRetryAndSkip(unittest.TestCase):
@@ -193,10 +195,8 @@ class DoneWhen2_GetJsonDelayRetryAndSkip(unittest.TestCase):
             records = collect_reddit.search(session, CFG, "flow", SINCE, subreddits=["salesforce", "salesforceadmin"])
         self.assertEqual([r["url"] for r in records], ["https://www.reddit.com/r/salesforceadmin/comments/abc123/"])
 
-    # Fails against the merged code; tracked in issue #17. Remove the decorator when it is fixed.
-    @unittest.expectedFailure
     def test_skipped_subreddit_is_named_in_meta_note(self):
-        """Done when: 'skipped with a note in meta.note'."""
+        """Done when: 'skipped with a note in meta.note' (and, per #17, in the markdown header)."""
         cfg = load_config()
         cfg = copy.deepcopy(cfg)
         cfg["reddit"].update(delay_seconds=0, timeout_retries=2, timeout_pause_seconds=0)
@@ -210,6 +210,12 @@ class DoneWhen2_GetJsonDelayRetryAndSkip(unittest.TestCase):
         self.assertEqual(result["meta"]["per_source"]["reddit"]["records"], 1)
         self.assertIn("salesforce", result["meta"]["note"].replace("salesforceadmin", ""),
                       f"meta.note does not name the skipped subreddit: {result['meta']['note']!r}")
+        self.assertIn("r/salesforce ", result["meta"]["per_source"]["reddit"]["note"] + " ")
+        header = ppf.format_md(result).split("\n")[2]
+        self.assertIn("reddit (1 records, fetched; reddit skipped r/salesforce ", header)
+        # A partial answer must not be served from the cache later with the note gone.
+        scope = ppf.search_scope(cfg, "24m", None, None, None, ["salesforce", "salesforceadmin"])
+        self.assertIsNone(store.cached("flow", "reddit", scope, 24, datetime.now(timezone.utc)))
 
 
 class DoneWhen3_ConfigDefaults(unittest.TestCase):

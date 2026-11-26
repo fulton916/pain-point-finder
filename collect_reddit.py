@@ -145,11 +145,12 @@ def fetch_subreddit(session: requests.Session, cfg: dict, query: str, since: dat
 
 
 def fetch_posts(session: requests.Session, cfg: dict, query: str, since: datetime | None,
-                subreddits: list[str], limit: int) -> list[dict]:
-    """One request per subreddit. Raises only when every subreddit failed."""
+                subreddits: list[str], limit: int, skipped: list[str] | None = None) -> list[dict]:
+    """One request per subreddit. Raises only when every subreddit failed. A subreddit the archive
+    kept refusing is left out of the result and appended to `skipped` when the caller passes a list."""
     rd = cfg["reddit"]
     posts: list[dict] = []
-    skipped: list[str] = []
+    skipped = skipped if skipped is not None else []
     for i, sub in enumerate(subreddits):
         if i:
             time.sleep(float(rd.get("delay_seconds", 1.0)))
@@ -220,12 +221,19 @@ def posts_to_records(posts: list[dict], fetched_at: str, body_max_chars: int, mi
 
 
 def search(session: requests.Session, cfg: dict, query: str, since: datetime, **options) -> list[dict]:
-    """One question in, validated records out. Options: subreddits (list[str], default from config)."""
+    """One question in, validated records out. Options: subreddits (list[str], default from config);
+    notes (list[str]): when given, a sentence naming any skipped subreddit is appended to it, so the
+    caller can tell the reader that part of the results is missing (ppf.py puts it in meta.note)."""
     rd = cfg["reddit"]
     subreddits = [s for s in (options.get("subreddits") or rd["subreddits"]) if s]
     if not subreddits:
         raise ValueError("reddit: no subreddits configured (reddit.subreddits in config.yaml, or --subreddits)")
-    posts = fetch_posts(session, cfg, query, since, subreddits, int(rd.get("search_limit", 100)))
+    skipped: list[str] = []
+    posts = fetch_posts(session, cfg, query, since, subreddits, int(rd.get("search_limit", 100)), skipped)
+    if skipped and options.get("notes") is not None:
+        options["notes"].append(
+            f"reddit skipped r/{', r/'.join(skipped)} after repeated 'Timeout. Maybe slow down a bit' answers; "
+            "Reddit results cover the other subreddits only.")
     records = posts_to_records(posts, now_iso(), rd["body_max_chars"], int(rd.get("search_min_score", 0)))
     log.info("reddit %r: %d records (r/%s, since %s)", query, len(records), ", r/".join(subreddits), since.date())
     return records
