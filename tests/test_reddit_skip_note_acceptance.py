@@ -175,13 +175,16 @@ class DoneWhen3_SkippedSubredditNamedInJsonAndMarkdown(unittest.TestCase):
         rc, out = run_cli(["search", "flow", "--sources", "rd", "--refresh",
                            "--subreddits", ",".join(self.SUBS)], refuse=set())
         self.assertEqual(rc, 0, out)
-        self.assertIn("reddit (3 records, fetched)", sources_header(out))
+        # Since #22 the header always names the subreddits searched; "skipped" appears only on a skip.
+        self.assertIn("reddit (3 records, fetched; reddit searched r/salesforce, r/salesforceadmin, r/salesforcedeveloper (from --subreddits))",
+                      sources_header(out))
         self.assertNotIn("skipped", out.lower())
         rc, out = run_cli(["search", "flow", "--sources", "rd", "--refresh", "--format", "json",
                            "--subreddits", ",".join(self.SUBS)], refuse=set())
         meta = json.loads(out)["meta"]
-        self.assertNotIn("note", meta["per_source"]["reddit"])
-        self.assertTrue(meta["note"].startswith("Rows are ordered"), meta["note"])
+        self.assertNotIn("skipped", meta["per_source"]["reddit"]["note"].lower())
+        self.assertNotIn("skipped", meta["note"].lower())
+        self.assertIn("Rows are ordered", meta["note"])
 
     def test_every_subreddit_skipped_is_a_source_failure_naming_them(self):
         rc, out = run_cli(["search", "flow", "--sources", "rd", "--refresh", "--format", "json",

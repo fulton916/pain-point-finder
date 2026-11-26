@@ -118,11 +118,63 @@ reddit:
   # Reddit's own Data API stopped taking new apps on 2026-10-31 (issue #9).
   endpoint: https://arctic-shift.photon-reddit.com/api/posts/search
   # Keyword search only works inside a subreddit, so each question is asked once per subreddit here.
-  # Search mode: --subreddits overrides this list.
+  # Sweep mode always uses this list. Search mode uses it last: --subreddits wins, then the topics
+  # map below, then the archive's subreddit name search, then this list (and the header says so).
   subreddits:
     - salesforce
     - SalesforceDeveloper
     - salesforceadmin
+  # Search mode without --subreddits, step 1: topic words -> subreddits. A key matches when it appears
+  # in the question as whole words, ignoring case (a key with spaces must appear as that phrase), so
+  # "best running shoes" matches `running` and "VA claim rating increase" matches `va claim`. Every
+  # matching key's subreddits are searched (no repeats). Add a line when a topic comes up often; the
+  # name search below is name-based and misses subreddits like VeteransBenefits for "veterans".
+  topics:
+    salesforce: [salesforce, SalesforceDeveloper, salesforceadmin]
+    sfdc: [salesforce, SalesforceDeveloper, salesforceadmin]
+    apex: [salesforce, SalesforceDeveloper, salesforceadmin]
+    soql: [salesforce, SalesforceDeveloper, salesforceadmin]
+    lwc: [salesforce, SalesforceDeveloper, salesforceadmin]
+    trailhead: [salesforce, SalesforceDeveloper, salesforceadmin]
+    running: [running, RunningShoeGeeks]
+    runners: [running, RunningShoeGeeks]
+    marathon: [running, RunningShoeGeeks]
+    veterans: [VeteransBenefits, Veterans]
+    veteran: [VeteransBenefits, Veterans]
+    "va claim": [VeteransBenefits, Veterans]
+    "va claims": [VeteransBenefits, Veterans]
+    "va disability": [VeteransBenefits, Veterans]
+    "va rating": [VeteransBenefits, Veterans]
+    cooking: [Cooking, AskCulinary]
+    recipe: [Cooking, AskCulinary]
+    recipes: [Cooking, AskCulinary]
+    clothes: [malefashionadvice, femalefashionadvice]
+    clothing: [malefashionadvice, femalefashionadvice]
+    fashion: [malefashionadvice, femalefashionadvice]
+    fitness: [Fitness]
+    workout: [Fitness]
+    gym: [Fitness]
+  # Step 2, when no topic matched: each question word (except name_search_skip_words and one-letter
+  # words, at most name_search_max_words of them) is sent to the archive's subreddit name search, GET <subreddit_search_endpoint>?subreddit=<word>,
+  # with delay_seconds between words and the same 422 "Timeout" retries as posts (a word the archive
+  # keeps refusing is skipped). Public, non-adult matches with at least min_subscribers subscribers
+  # are ranked by subscribers and the largest auto_max are searched. Remove the endpoint line to turn
+  # the name search off. Step 3, when that finds nothing: the subreddits list above.
+  subreddit_search_endpoint: https://arctic-shift.photon-reddit.com/api/subreddits/search
+  min_subscribers: 10000
+  auto_max: 3
+  # Words looked up at most, so a long question cannot take minutes (each word is a request plus a
+  # 5-second wait, more when the archive throttles). 0 = no cap.
+  name_search_max_words: 6
+  # Question words not worth a name-search request: they would match subreddits by spelling only.
+  # YAML reads bare yes, no, on, off as true/false, so those four stay in quotes.
+  name_search_skip_words: [a, an, the, and, or, but, of, to, for, in, "on", "off", at, by, with, from, about,
+                           into, is, are, was, were, be, been, do, does, did, have, has, had, can, could,
+                           should, would, will, i, my, me, we, our, you, your, it, its, this, that, these,
+                           those, what, which, who, how, why, when, where, "yes", "no", not, best, good,
+                           better, worst, bad, top, new, vs, versus, problem, problems, issue, issues, help,
+                           question, questions, tips, advice, review, reviews, recommend, recommendation,
+                           recommendations]
   # Fields to ask for. The archive answers 422 "Timeout" when no field list is sent.
   fields: [id, subreddit, title, selftext, url, score, num_comments, created_utc, retrieved_on]
   # Posts per subreddit per request, newest first (the API sorts by date only). Max 100.

@@ -212,7 +212,9 @@ class DoneWhen2_GetJsonDelayRetryAndSkip(unittest.TestCase):
                       f"meta.note does not name the skipped subreddit: {result['meta']['note']!r}")
         self.assertIn("r/salesforce ", result["meta"]["per_source"]["reddit"]["note"] + " ")
         header = ppf.format_md(result).split("\n")[2]
-        self.assertIn("reddit (1 records, fetched; reddit skipped r/salesforce ", header)
+        # Since #22 the header first says which subreddits were searched, then the skip sentence.
+        self.assertIn("reddit (1 records, fetched; ", header)
+        self.assertIn("reddit skipped r/salesforce ", header)
         # A partial answer must not be served from the cache later with the note gone.
         scope = ppf.search_scope(cfg, "24m", None, None, None, ["salesforce", "salesforceadmin"])
         self.assertIsNone(store.cached("flow", "reddit", scope, 24, datetime.now(timezone.utc)))
@@ -307,7 +309,8 @@ class DoneWhen5_DocsAndEndToEnd(unittest.TestCase):
         text = out.getvalue()
         self.assertEqual(rc, 0, text)
         self.assertEqual(get.call_count, 3)
-        self.assertIn("reddit (1 records, fetched)", text)
+        # Since #22 the header also says which subreddits were searched and why ("x" has no topic word).
+        self.assertIn("reddit (1 records, fetched; reddit searched r/salesforce, r/SalesforceDeveloper, r/salesforceadmin", text)
         self.assertIn("https://www.reddit.com/r/salesforce/comments/abc123/", text)
         self.assertIn("42 " + ppf.UNITS["reddit"], text)
         self.assertIn("arctic_shift", text)  # attribution line printed with the result
