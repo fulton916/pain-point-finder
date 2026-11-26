@@ -8,7 +8,8 @@ search:
   # Source short names: hn (Hacker News), gh (GitHub issues), se (Stack Exchange), rd (Reddit via the
   # Arctic Shift archive; not in the default list because its scores are stale), bs (Bluesky; not in the
   # default list because likes measure a post's spread, not a problem's size), yt (YouTube comments; needs
-  # a key and spends a daily quota, so not in the default list), ie (IdeaExchange CSV, local).
+  # a key and spends a daily quota, so not in the default list), as (App Store customer reviews; not in
+  # the default list because one app's reviews describe one product), ie (IdeaExchange CSV, local).
   default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
@@ -47,6 +48,7 @@ paths:
     - data/raw/reddit.jsonl
     - data/raw/bluesky.jsonl
     - data/raw/youtube.jsonl
+    - data/raw/appstore.jsonl
     - data/raw/ideaexchange.jsonl
 
 hacker_news:
@@ -314,6 +316,36 @@ youtube:
   # most 30 calendar days. Every yt search deletes stored YouTube rows fetched more than this many days ago.
   store_days: 30
 
+appstore:
+  # Apple's public endpoints, no key. The iTunes Search API finds the apps for the question's words
+  # (performance-partners.apple.com/search-api, read 2026-11-26: "limited to approximately 20 calls per
+  # minute (subject to change)"); each app's customer-review feed then gives its most-helpful reviews,
+  # 50 a page, at most 10 pages, HTTP 400 past the last one. The feed has no terms page of its own, and
+  # Apple's website terms forbid robots on www.apple.com pages only; this tool reads no App Store page.
+  search_endpoint: https://itunes.apple.com/search
+  # One call fetches the names of the ids given with --apps.
+  lookup_endpoint: https://itunes.apple.com/lookup
+  # {country}, {page}, {app_id} and {sort} are filled in by the tool.
+  reviews_endpoint: https://itunes.apple.com/{country}/rss/customerreviews/page={page}/id={app_id}/sortBy={sort}/json
+  # Which country's store (two-letter code). Reviews differ by store.
+  country: us
+  # Search API matches asked for, and how many of them (the first ones) are read. Apple matches loosely,
+  # so the header names the apps it read; --apps names them outright.
+  lookup_limit: 5
+  apps: 3
+  # Pages of 50 reviews per app. Each page is one request.
+  pages: 2
+  # mostHelpful (what we want) or mostRecent.
+  sort: mostHelpful
+  # Seconds between requests. 20 Search API calls a minute is the documented limit; one question sends one.
+  delay_seconds: 1.0
+  # Search mode: keep reviews with at least this many helpful votes. 0 keeps every review.
+  search_min_votes: 0
+  # Sweep mode: reviews with fewer helpful votes are skipped.
+  min_votes: 5
+  # How many characters of the body ("(2/5 stars) " + review text) to keep.
+  body_max_chars: 2000
+
 ideaexchange:
   csv_path: data/ideaexchange.csv
   # Clearly labeled made-up rows used only to test the importer.
@@ -350,6 +382,9 @@ scoring:
     # Likes on a comment count the viewers of one video who agreed, not the people who share the problem,
     # so a YouTube row alone never counts as Strong.
     youtube: Moderate
+    # One app's reviews describe one product, not a cross-market problem, so an App Store row alone never
+    # counts as Strong.
+    appstore: Moderate
   # ---- search mode only: labels from raw score thresholds, not percentiles ----
   # One question's results are too few for percentiles to mean anything, so search mode
   # labels a row by its raw score against its own source: at or above `strong` (with
@@ -368,6 +403,10 @@ scoring:
                                                   # last 3 months had 41 and 54 likes; most matches have a handful.
     youtube:       {moderate: 20,  strong: 200}   # comment likes (issue #25). Popular videos' top comments run
                                                   # into the hundreds or thousands; most comments have a handful.
+    appstore:      {moderate: 5,   strong: 25}    # helpful votes (issue #30). Checked 2026-11-26: Strava's 50 most-helpful
+                                                  # reviews had 0 to 767 votes, p75 = 7, 16 of 50 at 5 or more, 6 at 25 or more.
+                                                  # Votes accrue over years: the 16 reviews of three GPS apps dated within 12 months
+                                                  # had 0 or 1, so a short --since yields Anecdotal rows; widen it to see voted ones.
   # ---- both modes ----
   # final_score is multiplied by the weight for the row's status (matched ignoring case).
   # A problem the vendor already solved is less worth building for, so it sinks. The status
