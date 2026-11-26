@@ -35,8 +35,9 @@ Use only free, official APIs. Never scrape.
 | `se` | Stack Exchange API v2.3 `/search/advanced`, `site=salesforce` by default (`--site` overrides) | Live (terms pasted and cleared 2026-11-25) | `STACKEXCHANGE_KEY` in `.env`, optional (300/day without) |
 | `ie` | IdeaExchange, from `data/ideaexchange.csv` made by hand | Live (local search over `data/ideaexchange.csv`: top 30 ideas by points, read from ideas.salesforce.com on 2026-11-25) | None |
 | `rd` | Reddit, via the Arctic Shift archive API (`arctic-shift.photon-reddit.com/api/posts/search`), configured subreddits only (`--subreddits` overrides) | Live (2026-11-25). Reddit's own Data API closed to new apps 2026-10-31 and shuts in March 2027; the archive may stop then too | None |
+| `bs` | Bluesky, via the public AppView API (`app.bsky.feed.searchPosts`, sort=top, 100 per page, up to `bluesky.max_pages` pages; in practice one, because on 2026-11-26 every unauthenticated request with a `cursor` got HTTP 403 "forbidden by administrative rules"); likes are the score, replies the comments | Live (2026-11-26). Rate limit: none published for `public.api.bsky.app` or `api.bsky.app` (the docs say "generous", HTTP 429 when crossed), checked 2026-11-26; the tool waits 1 second between pages. The documented host `public.api.bsky.app` answered every request from here with an HTML 403 on 2026-11-26, so the tool tries it once and falls back to `api.bsky.app` | None |
 
-Rate limits as checked 2026-11-24: Hacker News 10,000 requests/hour per IP; GitHub 5,000 requests/hour with a token, search 30 requests/minute and 1,000 results per query; Stack Exchange 10,000 requests/day with a key (300 without), 30 requests/second max, honor the `backoff` field, no identical request more than once a minute, attribution required (CC BY-SA; `collect_se.ATTRIBUTION` is printed with every result that includes the source); Arctic Shift has dynamic limits and no published terms, answers `422 Timeout. Maybe slow down a bit` within a second when requests come too fast (a throttle: the tool waits 5 seconds between subreddits, retries after 10, 20 and 40 seconds, then skips that subreddit), and must always be sent a `fields` list. Tell me if any of these change.
+Rate limits as checked 2026-11-24: Hacker News 10,000 requests/hour per IP; GitHub 5,000 requests/hour with a token, search 30 requests/minute and 1,000 results per query; Stack Exchange 10,000 requests/day with a key (300 without), 30 requests/second max, honor the `backoff` field, no identical request more than once a minute, attribution required (CC BY-SA; `collect_se.ATTRIBUTION` is printed with every result that includes the source); Arctic Shift has dynamic limits and no published terms, answers `422 Timeout. Maybe slow down a bit` within a second when requests come too fast (a throttle: the tool waits 5 seconds between subreddits, retries after 10, 20 and 40 seconds, then skips that subreddit), and must always be sent a `fields` list. Bluesky (checked 2026-11-26) publishes no request limit for its public AppView hosts, only that they are "generous" and answer HTTP 429 when crossed (the 3,000 requests per 5 minutes per IP figure in its docs is for authenticated PDS hosts, not these), has no attribution rule, and its Developer Guidelines forbid automated likes, follows and replies, which a read-only search never does; the tool waits 1 second between pages. Tell me if any of these change.
 
 ## File layout
 
@@ -50,6 +51,7 @@ collect_hn.py            Hacker News: sweep collector and search()
 collect_gh.py            GitHub issues: sweep collector and search()
 collect_se.py            Stack Exchange: sweep collector and search(); --check-key tests the key
 collect_reddit.py        Reddit via the Arctic Shift archive: sweep collector and search(); no key
+collect_bluesky.py       Bluesky via the public AppView API: sweep collector and search(); no key
 import_ideaexchange.py   IdeaExchange CSV importer and local search()
 merge_and_score.py       dedupe, normalize, weight, label
 docs/skill/SKILL.md      the Claude skill (keep ~/.claude/skills/pain-point-finder/SKILL.md identical)
@@ -89,7 +91,7 @@ Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score.
 4. **Evidence label.**
    - Sweep mode (percentiles): "Strong" is 2+ sources, or top 10% in its source with activity in the last 24 months; "Moderate" is top 25%; "Anecdotal" is everything else.
    - Search mode (raw thresholds in `scoring.source_thresholds`): "Strong" is 2+ sources, or at or above `strong` with activity in the last 24 months; "Moderate" is at or above `moderate`; "Anecdotal" otherwise.
-   - Hacker News rows alone are capped at Moderate (`scoring.label_caps`), and so are Reddit rows, because archived scores are usually the score at posting time.
+   - Hacker News rows alone are capped at Moderate (`scoring.label_caps`), and so are Reddit rows, because archived scores are usually the score at posting time, and Bluesky rows, because likes measure how far a short post spread, not how many people share the problem.
 5. **Output.** Sweep writes `data/output/ranked.csv` and `merge_log.csv`. Search prints markdown (`**Label** · source · score · comments · date · status` under each linked title) or JSON (`meta` with `per_source`, `merges`, `dropped`, `note`; `rows`).
 
 ## Theme step (sweep mode)
