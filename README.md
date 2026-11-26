@@ -133,7 +133,7 @@ The second line of each row is `**Label** · source · score · comments · date
 
 A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived.
 
-`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
+`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` when part of a source's results is missing, such as a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
 Exit code 0 is normal, even with no results. Exit code 2 means a bad flag or that every source failed.
 
