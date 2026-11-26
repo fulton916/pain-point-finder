@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 
 import requests
 
+import collect_appstore
 import collect_bluesky
 import collect_gh
 import collect_hn
@@ -48,9 +49,10 @@ SOURCES = {
     "rd": collect_reddit,
     "bs": collect_bluesky,
     "yt": collect_youtube,
+    "as": collect_appstore,
 }
 ALIASES = {"hackernews": "hn", "github": "gh", "ideaexchange": "ie", "stackexchange": "se", "reddit": "rd",
-           "bluesky": "bs", "youtube": "yt"}
+           "bluesky": "bs", "youtube": "yt", "appstore": "as"}
 # What a score counts, per source, for the printed line.
 UNITS = {
     "hackernews": "points",
@@ -60,6 +62,7 @@ UNITS = {
     "reddit": "upvotes",
     "bluesky": "likes",
     "youtube": "likes",
+    "appstore": "helpful votes",
 }
 # What the comments field counts when it is not comments (Stack Exchange stores answer_count there;
 # Bluesky stores replyCount; YouTube stores totalReplyCount).
@@ -89,7 +92,8 @@ def snippet(body: str, max_chars: int) -> str:
 
 
 def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only: bool | None,
-                 site: str | None = None, subreddits: list[str] | None = None) -> str:
+                 site: str | None = None, subreddits: list[str] | None = None,
+                 apps: list[str] | None = None) -> str:
     """Everything besides the words that changes an answer, so the cache never serves a search
     made with other options. Options are resolved to their config defaults first."""
     gh = cfg.get("github", {})
@@ -105,18 +109,21 @@ def search_scope(cfg: dict, since_text: str, repos: list[str] | None, title_only
     # a map the same question needs --refresh once.
     site = site or "auto"
     subs = "auto" if subreddits is None else ",".join(subreddits)
-    return f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={subs}"
+    # The same for --apps: without it the App Store source looks the apps up from the question.
+    app_ids = "auto" if apps is None else ",".join(apps)
+    return (f"since={since_text}|repos={','.join(repos)}|title_only={title_only}|site={site}|subreddits={subs}"
+            f"|apps={app_ids}")
 
 
 def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refresh: bool, limit: int,
                repos: list[str] | None, title_only: bool | None, store: Store | None = None,
                session: requests.Session | None = None, site: str | None = None,
-               subreddits: list[str] | None = None) -> dict:
+               subreddits: list[str] | None = None, apps: list[str] | None = None) -> dict:
     common.load_env()
     search_cfg = cfg.get("search", {})
     now = datetime.now(timezone.utc).replace(microsecond=0)
     since = common.parse_since(since_text, now)
-    scope = search_scope(cfg, since_text, repos, title_only, site, subreddits)
+    scope = search_scope(cfg, since_text, repos, title_only, site, subreddits, apps)
     own_store = store is None
     store = store or Store(cfg["paths"]["store"])
     session = session or requests.Session()
@@ -125,7 +132,8 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
     all_records: list[dict] = []
     per_source: dict[str, dict] = {}
     # `store` lets a source clean up after itself (YouTube deletes its rows after 30 days, as its API policy asks).
-    options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits, "store": store}
+    options = {"repos": repos, "title_only": title_only, "site": site, "subreddits": subreddits, "apps": apps,
+               "store": store}
     source_notes: list[str] = []  # sentences a source adds: what it searched (info) or what is missing (notes)
     for short in sources:
         mod = SOURCES[short]
@@ -272,8 +280,10 @@ def cmd_search(args: argparse.Namespace, cfg: dict) -> int:
     # Lower-cased and sorted: the archive ignores case, and the cache scope must not depend on how
     # the list was typed.
     subreddits = sorted({s.strip().removeprefix("r/").lower() for s in args.subreddits.split(",") if s.strip()}) if args.subreddits else None
+    # App ids are digits; sorted so the cache scope does not depend on the order typed.
+    apps = sorted({a.strip().removeprefix("id") for a in args.apps.split(",") if a.strip()}) if args.apps else None
     result = run_search(cfg, args.query, sources, since_text, args.refresh, limit, repos, title_only, site=site,
-                        subreddits=subreddits)
+                        subreddits=subreddits, apps=apps)
     text = format_json(result) if args.format == "json" else format_md(result)
     sys.stdout.write(text + ("\n" if not text.endswith("\n") else ""))
     failed = [n for n, i in result["meta"]["per_source"].items() if "error" in i]
@@ -284,7 +294,8 @@ def cmd_sweep(args: argparse.Namespace, cfg: dict) -> int:
     # One failing API must not stop the others or the ranking; the raw file it wrote last time stays.
     for name, run in (("hackernews", lambda: collect_hn.main()), ("github", lambda: collect_gh.main([])),
                       ("stackexchange", lambda: collect_se.main([])), ("reddit", lambda: collect_reddit.main([])),
-                      ("bluesky", lambda: collect_bluesky.main([])), ("youtube", lambda: collect_youtube.main([]))):
+                      ("bluesky", lambda: collect_bluesky.main([])), ("youtube", lambda: collect_youtube.main([])),
+                      ("appstore", lambda: collect_appstore.main([]))):
         try:
             rc = run()
         except (requests.HTTPError, common.RateLimited, ValueError, RuntimeError) as e:
@@ -306,7 +317,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("search", help="ask one question across the sources")
     s.add_argument("query", help="the words to search for")
-    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, yt, ie (default from config.yaml)")
+    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, yt, as, ie (default from config.yaml). as = App Store customer "
+                   "reviews (keyless; the iTunes Search API allows about 20 calls a minute, checked 2026-11-26)")
     s.add_argument("--since", help="24m, 30d, 8w, 2y or YYYY-MM-DD (default from config.yaml)")
     s.add_argument("--format", choices=["md", "json"], default="md")
     s.add_argument("--limit", type=int, help="rows to print (default from config.yaml)")
@@ -321,6 +333,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--subreddits", help="Reddit only: comma list of subreddits to search, e.g. salesforce,SalesforceDeveloper. "
                    "Without it the question picks them: the reddit.topics map in config.yaml, else the archive's subreddit "
                    "name search (largest first, at most 3), else reddit.subreddits; the header says which")
+    s.add_argument("--apps", help="App Store only: comma list of app ids to read, e.g. 426826309,387771637 (the number after "
+                   "'id' in an apps.apple.com link). Without it the question picks up to 3 apps through the iTunes Search "
+                   "API; the header says which")
     s.set_defaults(func=cmd_search)
 
     w = sub.add_parser("sweep", help="batch mode: every config keyword and repo, then rank to data/output")
