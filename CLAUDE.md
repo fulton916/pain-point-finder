@@ -44,7 +44,7 @@ Rate limits as checked 2026-11-24: Hacker News 10,000 requests/hour per IP; GitH
 ## File layout
 
 ```
-ppf.py                   the command line: search and sweep
+ppf.py                   the command line: search (sources fetched in parallel, one thread each), history and sweep
 store.py                 SQLite evidence store (data/evidence.db, gitignored)
 config.yaml              search defaults, topic, keywords, repos, scoring
 .env                     API keys (never committed); .env.example lists the names
@@ -98,7 +98,7 @@ Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score. `status` is 
    - Search mode (raw thresholds in `scoring.source_thresholds`): "Strong" is 2+ sources, or at or above `strong` with activity in the last 24 months; "Moderate" is at or above `moderate`; "Anecdotal" otherwise. Sources in `scoring.strong_without_activity` (IdeaExchange: the CSV has posted dates only) reach Strong on score alone while the row's status is Open or In Development (`merge_and_score.OPEN_STATUSES`); Delivered or Archived rows do not.
    - Rows are sorted on the exact final score and rounded to 4 decimals afterwards, so ideas from 2006 (score under 0.00005) still order by status weight instead of tying at 0.0.
    - Hacker News rows alone are capped at Moderate (`scoring.label_caps`), and so are Reddit rows, because archived scores are usually the score at posting time, and Bluesky rows, because likes measure how far a short post spread, not how many people share the problem, and YouTube rows, because comment likes count the viewers of one video who agreed, and App Store rows, because one app's reviews describe one product.
-5. **Output.** Sweep writes `data/output/ranked.csv` and `merge_log.csv`. Search prints markdown (`**Label** · source · score · comments · date · status` under each linked title) or JSON (`meta` with `per_source`, `merges`, `dropped`, `note`; `rows`).
+5. **Output.** Sweep writes `data/output/ranked.csv` and `merge_log.csv`. Search prints markdown (`**Label** · source · score · comments · date · status` under each linked title), compact (`Label | source | score units | date | status | title | url`, one line per row, no snippet; the form the skill asks a Claude caller to prefer) or JSON (`meta` with `per_source`, `merges`, `dropped`, `note`, and with `--trend` `trend` and `trend_outside`; `rows`). `--trend` counts each source's records per half-year inside the window, by posting date, else last activity. `python ppf.py history [--limit 20]` lists past runs from the `queries` table (date, query, sources, since, records).
 
 ## Theme step (sweep mode)
 

@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -45,6 +46,8 @@ log = logging.getLogger("ppf")
 
 # Counts HTTP requests made through get_json, so a run can report "0 requests, all from cache".
 STATS = {"requests": 0}
+# Search mode asks the sources from several threads at once; the counter is shared.
+_STATS_LOCK = threading.Lock()
 
 # Secret values (API keys sent as query parameters) that must never appear in a log line or an
 # error message. load_env() adds the values of SECRET_NAMES, a collector may add its key again;
@@ -232,7 +235,8 @@ def get_json(
     for attempt in range(1, max_tries + 1):
         last_try = attempt == max_tries
         try:
-            STATS["requests"] += 1
+            with _STATS_LOCK:
+                STATS["requests"] += 1
             resp = session.get(url, params=params, headers=hdrs, timeout=timeout)
         except requests.RequestException as e:
             last_err = redact(str(e))
