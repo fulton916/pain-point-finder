@@ -144,15 +144,27 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
                session: requests.Session | None = None, site: str | None = None,
                subreddits: list[str] | None = None, apps: list[str] | None = None, trend: bool = False) -> dict:
     common.load_env()
-    search_cfg = cfg.get("search", {})
     now = datetime.now(timezone.utc).replace(microsecond=0)
     since = common.parse_since(since_text, now)
     scope = search_scope(cfg, since_text, repos, title_only, site, subreddits, apps)
     own_store = store is None
     store = store or Store(cfg["paths"]["store"])
-    session = session or requests.Session()
     common.STATS["requests"] = 0
+    try:
+        all_records, per_source, source_notes = _fetch_all(cfg, query, sources, since, scope, refresh, store, session,
+                                                           repos, title_only, site, subreddits, apps, now)
+        store_counts = store.counts()
+    finally:
+        if own_store:
+            store.close()
 
+    return _assemble(cfg, query, sources, since_text, since, now, limit, all_records, per_source, source_notes,
+                     store_counts, trend)
+
+
+def _fetch_all(cfg, query, sources, since, scope, refresh, store, session, repos, title_only, site, subreddits, apps, now):
+    """The cache, the workers and the store writes. Returns (records, per_source, source_notes)."""
+    search_cfg = cfg.get("search", {})
     all_records: list[dict] = []
     per_source: dict[str, dict] = {}
     # `store` is None on purpose: the workers run in threads and the SQLite connection belongs to this one.
@@ -179,12 +191,13 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
     # Step 2, one worker per source still to fetch, all at once, so the answer takes about as long as the
     # slowest source (the Reddit archive, a minute or two with retries) instead of the sum. Each collector
     # keeps its own delays and retries, and each talks to its own host, so running them side by side breaks
-    # no rate limit. requests' connection pool is thread-safe.
+    # no rate limit. A requests.Session is not promised to be thread-safe, so each worker gets its own unless
+    # the caller passed one (tests do).
     fetched: dict[str, dict] = {}
     if to_fetch:
         with ThreadPoolExecutor(max_workers=len(to_fetch), thread_name_prefix="ppf") as pool:
-            futures = {short: pool.submit(fetch_source, SOURCES[short], session, cfg, query, since, options)
-                       for short in to_fetch}
+            futures = {short: pool.submit(fetch_source, SOURCES[short], session or requests.Session(), cfg, query,
+                                          since, options) for short in to_fetch}
             fetched = {short: f.result() for short, f in futures.items()}
 
     # Step 3, this thread again, in the fixed source order: store, log and collect what came back. A source's
@@ -212,10 +225,13 @@ def run_search(cfg: dict, query: str, sources: list[str], since_text: str, refre
             per_source[name]["note"] = " ".join(info + notes)
             source_notes.extend(info + notes)
         all_records.extend(records)
-    store_counts = store.counts()
-    if own_store:
-        store.close()
+    return all_records, per_source, source_notes
 
+
+def _assemble(cfg, query, sources, since_text, since, now, limit, all_records, per_source, source_notes, store_counts,
+              trend) -> dict:
+    """Rank the records and build the result dict."""
+    search_cfg = cfg.get("search", {})
     if all_records:
         rows, merge_log = merge_and_score.rank(all_records, cfg["scoring"], as_of=now, mode="search")
     else:
@@ -401,10 +417,10 @@ def format_compact(result: dict) -> str:
         src = r["sources"]
         best_source = r.get("best_source") or src.split(";")[0]
         score = f"{r['raw_score']} {UNITS.get(best_source, 'score')}" if r["raw_score"] != "" else "-"
-        # A pipe in a title would shift the columns.
-        title = " ".join(r["title"].replace("|", "/").split())
+        # A pipe in a free-text field would shift the columns.
+        cell = lambda text: " ".join(str(text).replace("|", "/").split()) or "-"
         lines.append(" | ".join([r["evidence_label"], src.replace(";", " + "), score, r["latest_activity"] or "-",
-                                 r["status"] or "-", title, r["best_url"]]))
+                                 cell(r["status"]), cell(r["title"]), cell(r["best_url"])]))
     return "\n".join(lines)
 
 
@@ -480,6 +496,13 @@ def cmd_sweep(args: argparse.Namespace, cfg: dict) -> int:
     return merge_and_score.main()
 
 
+def positive_int(text: str) -> int:
+    n = int(text)
+    if n < 1:
+        raise argparse.ArgumentTypeError("must be 1 or more")
+    return n
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ppf", description="Pain Point Finder: real user discussion with vote counts.")
     sub = p.add_subparsers(dest="command", required=True)
@@ -512,7 +535,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_search)
 
     h = sub.add_parser("history", help="list past searches from data/evidence.db, newest first")
-    h.add_argument("--limit", type=int, default=20, help="runs to list (default 20)")
+    h.add_argument("--limit", type=positive_int, default=20, help="runs to list (default 20)")
     h.set_defaults(func=cmd_history)
 
     w = sub.add_parser("sweep", help="batch mode: every config keyword and repo, then rank to data/output")

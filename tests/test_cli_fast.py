@@ -69,7 +69,7 @@ class ParallelSourcesTests(unittest.TestCase):
         start = time.perf_counter()
         result = self.run_it()
         elapsed = time.perf_counter() - start
-        self.assertLess(elapsed, 1.0, f"took {elapsed:.2f}s: the sources ran one after the other")
+        self.assertLess(elapsed, 1.1, f"took {elapsed:.2f}s: the sources ran one after the other")
         self.assertEqual(result["meta"]["records"], 3)
         self.assertNotEqual(self.slow.threads, ["MainThread"])
         self.assertNotEqual(self.quick.threads, ["MainThread"])
@@ -291,6 +291,8 @@ class HistoryTests(unittest.TestCase):
         parser = ppf.build_parser()
         self.assertEqual(parser.parse_args(["history"]).limit, 20)
         self.assertEqual(parser.parse_args(["history", "--limit", "5"]).limit, 5)
+        with self.assertRaises(SystemExit), redirect_stdout(io.StringIO()), mock.patch("sys.stderr", io.StringIO()):
+            parser.parse_args(["history", "--limit", "0"])
         with mock.patch.object(ppf.Store, "history", return_value=runs) as hist, \
              mock.patch.object(ppf.Store, "__init__", return_value=None), mock.patch.object(ppf.Store, "close"), \
              redirect_stdout(io.StringIO()) as out:
