@@ -26,7 +26,8 @@ Rate limit (docs.github.com/graphql/overview/rate-limits-and-node-limits-for-the
 2026-11-27): a budget of 5,000 points per hour per token, separate from the REST budget; every answer
 reports its cost in the `rateLimit` field (a search page costs 1 point) and the tool logs what is left.
 When a page answers with a RATE_LIMITED error the tool waits for X-RateLimit-Reset (or Retry-After,
-else a doubling pause) and retries; HTTP 403 and 429 (the secondary limit) are handled the same way.
+else a doubling pause, at most MAX_WAIT_SECONDS) and retries; HTTP 403 and 429 (the secondary limit) are
+handled the same way, and a longer wait fails the source so the other sources still print.
 The search string must stay under 256 characters, as for the REST search.
 """
 
@@ -54,6 +55,9 @@ from common import (
 SOURCE = "github_discussions"
 API_VERSION = "2022-11-28"
 MAX_QUERY_CHARS = 256
+# Longest pause on a rate-limit answer. A spent budget resets within the hour; waiting that long would stall
+# the whole parallel search, so past this the source fails with RateLimited and the others still print.
+MAX_WAIT_SECONDS = 120.0
 DEFAULT_ENDPOINT = "https://api.github.com/graphql"
 
 # One page of discussions plus what the call cost. `$after` is null on the first page.
@@ -112,6 +116,15 @@ def _rate_limited(data: dict) -> bool:
     return any(isinstance(e, dict) and e.get("type") == "RATE_LIMITED" for e in data.get("errors") or [])
 
 
+def _wait_or_give_up(resp, delay: float, what: str) -> float:
+    """Seconds to pause before retrying a rate-limit answer, or RateLimited when the reset is too far off."""
+    wait = _rate_limit_wait(resp) or delay
+    if wait > MAX_WAIT_SECONDS:
+        raise RateLimited(redact(f"github_discussions: {what}; GitHub asks to wait {wait:.0f}s, more than the "
+                                 f"{MAX_WAIT_SECONDS:.0f}s this tool will pause. Try again later."))
+    return wait
+
+
 def post_graphql(session: requests.Session, endpoint: str, variables: dict, max_tries: int = 6,
                  timeout: int = 30) -> dict:
     """POST one GraphQL query and return its `data`. Retries connection errors and 5xx with a doubling
@@ -140,7 +153,7 @@ def post_graphql(session: requests.Session, endpoint: str, variables: dict, max_
             if last_try:
                 raise RateLimited(redact(f"github_discussions: gave up after {max_tries} tries: "
                                          f"HTTP {resp.status_code} {resp.text[:200]}"))
-            wait = _rate_limit_wait(resp) or delay
+            wait = _wait_or_give_up(resp, delay, f"HTTP {resp.status_code} {resp.text[:200]}")
             log.warning("github_discussions: HTTP %s (rate limit remaining=%s). Waiting %.0fs, retry %d/%d",
                         resp.status_code, resp.headers.get("X-RateLimit-Remaining"), wait, attempt, max_tries)
             time.sleep(wait)
@@ -171,7 +184,7 @@ def post_graphql(session: requests.Session, endpoint: str, variables: dict, max_
             if last_try:
                 raise RateLimited(f"github_discussions: gave up after {max_tries} tries: the GraphQL budget is spent "
                                   f"(RATE_LIMITED; it refills within the hour)")
-            wait = _rate_limit_wait(resp) or delay
+            wait = _wait_or_give_up(resp, delay, "the GraphQL budget is spent (RATE_LIMITED)")
             log.warning("github_discussions: RATE_LIMITED (GraphQL points spent). Waiting %.0fs, retry %d/%d",
                         wait, attempt, max_tries)
             time.sleep(wait)
@@ -188,7 +201,7 @@ def post_graphql(session: requests.Session, endpoint: str, variables: dict, max_
 def fetch_nodes(session: requests.Session, cfg: dict, q: str, max_pages: int, label: str,
                 notes: list[str] | None = None) -> list[dict]:
     """Up to max_pages pages of discussions for one search string, following the cursor. Logs the
-    rateLimit field of every answer; when the budget reaches 0 with pages left, stops and says so."""
+    rateLimit field of every answer; when what is left cannot pay for another page, stops and says so."""
     gd = cfg["github_discussions"]
     endpoint = gd.get("endpoint", DEFAULT_ENDPOINT)
     first = int(gd.get("per_page", 100))
@@ -209,7 +222,9 @@ def fetch_nodes(session: requests.Session, cfg: dict, q: str, max_pages: int, la
         after = info.get("endCursor")
         if not info.get("hasNextPage") or not after or not page_nodes:
             break
-        if limit.get("remaining") == 0:
+        # Stop before a page the budget cannot pay for: the next page costs about what this one did.
+        remaining, cost = limit.get("remaining"), limit.get("cost")
+        if isinstance(remaining, int) and remaining < max(int(cost or 1), 1):
             why = (f"github_discussions kept page {page} only ({len(nodes)} discussions): the GraphQL budget is spent "
                    f"until {limit.get('resetAt') or 'the hour turns'}.")
             log.warning("%s", why)

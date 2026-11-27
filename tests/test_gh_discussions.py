@@ -294,6 +294,28 @@ class RateLimitTests(unittest.TestCase):
         self.assertGreaterEqual(sleep.call_args[0][0], 1.0)
 
     @with_token
+    def test_a_reset_too_far_away_fails_the_source_at_once(self):
+        far = FakeResponse(403, text="budget spent", headers={"X-RateLimit-Reset": str(10_000)})
+        s = FakeSession([far, FakeResponse(200, page([node()]))])
+        with mock.patch("time.sleep") as sleep, mock.patch("time.time", return_value=0.0), \
+                self.assertRaises(RateLimited) as ctx:
+            gd.search(s, CFG, "bulk api", SINCE)
+        self.assertEqual(sleep.call_count, 0)
+        self.assertEqual(len(s.calls), 1)
+        self.assertIn("Try again later", str(ctx.exception))
+
+    @with_token
+    def test_a_budget_too_small_for_another_page_stops_paging(self):
+        s = FakeSession([
+            FakeResponse(200, page([node(url="https://x/1")], has_next=True, cursor="c1", remaining=1, cost=2)),
+            FakeResponse(200, page([node(url="https://x/2")])),
+        ])
+        notes: list[str] = []
+        self.assertEqual(len(gd.search(s, CFG, "bulk api", SINCE, notes=notes)), 1)
+        self.assertEqual(len(s.calls), 1)
+        self.assertTrue(notes and "budget is spent" in notes[0], notes)
+
+    @with_token
     def test_rate_limited_forever_gives_up_with_rate_limited(self):
         s = FakeSession([FakeResponse(200, {"errors": [{"type": "RATE_LIMITED", "message": "x"}]}) for _ in range(6)])
         with mock.patch("time.sleep"), self.assertRaises(RateLimited):
