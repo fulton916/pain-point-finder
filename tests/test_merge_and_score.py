@@ -393,5 +393,117 @@ class OutputTests(unittest.TestCase):
         self.assertEqual(sorted(recs[0].keys()), sorted(FIELDS))
 
 
+IE_SCORING = dict(
+    SCORING,
+    source_thresholds={**SCORING["source_thresholds"], "ideaexchange": {"moderate": 100, "strong": 500}},
+    status_weights={"default": 1.0, "closed": 0.5, "Delivered": 0.25, "Archived": 0.25, "Not Planned": 0.25},
+    strong_without_activity=["ideaexchange"],
+)
+
+
+def idea(url, title, votes, status, created="2007-04-19T00:00:00+00:00"):
+    return rec("ideaexchange", url, title, votes, created=created, status=status)
+
+
+class StrongWithoutActivityTests(unittest.TestCase):
+    """Issue #31: an IdeaExchange row has no activity date (the CSV holds posted dates only), so in search
+    mode votes alone make an open idea Strong. Delivered or Archived ideas, and every other source, do not
+    get the waiver."""
+
+    def label(self, records, scoring=IE_SCORING, mode="search"):
+        rows, _ = ms.rank(records, scoring, AS_OF, mode=mode)
+        return {r["best_url"]: r["evidence_label"] for r in rows}
+
+    def test_open_idea_at_strong_threshold_is_strong_without_recent_activity(self):
+        labels = self.label([idea("https://ideas.example.com/1", "Inline editing for related lists", 600, "Open")])
+        self.assertEqual(labels["https://ideas.example.com/1"], "Strong")
+
+    def test_in_development_counts_as_open(self):
+        labels = self.label([idea("https://ideas.example.com/1", "Faster Lightning Experience", 600, "In Development")])
+        self.assertEqual(labels["https://ideas.example.com/1"], "Strong")
+
+    def test_delivered_and_archived_ideas_at_the_same_votes_are_not_strong(self):
+        labels = self.label([
+            idea("https://ideas.example.com/1", "Dependent page layouts", 600, "Delivered"),
+            idea("https://ideas.example.com/2", "Reporting on notes and attachments", 600, "Archived"),
+        ])
+        self.assertEqual(labels["https://ideas.example.com/1"], "Moderate")
+        self.assertEqual(labels["https://ideas.example.com/2"], "Moderate")
+
+    def test_open_idea_below_the_strong_threshold_is_moderate(self):
+        labels = self.label([idea("https://ideas.example.com/1", "Frequency reports from picklists", 400, "Open")])
+        self.assertEqual(labels["https://ideas.example.com/1"], "Moderate")
+
+    def test_waiver_is_off_when_the_config_list_is_empty(self):
+        scoring = dict(IE_SCORING, strong_without_activity=[])
+        labels = self.label([idea("https://ideas.example.com/1", "Inline editing for related lists", 600, "Open")], scoring)
+        self.assertEqual(labels["https://ideas.example.com/1"], "Moderate")
+
+    def test_other_sources_keep_the_activity_rule(self):
+        old_gh = rec("github", "https://github.com/o/r/issues/1", "Flow export hangs forever", 30,
+                     created="2007-04-19T00:00:00+00:00", status="open")
+        labels = self.label([old_gh])
+        self.assertEqual(labels["https://github.com/o/r/issues/1"], "Moderate")
+
+    def test_sweep_mode_is_unchanged(self):
+        labels = self.label([idea("https://ideas.example.com/1", "Inline editing for related lists", 600, "Open")], mode="sweep")
+        self.assertNotEqual(labels["https://ideas.example.com/1"], "Strong")
+
+    def test_status_match_ignores_case_and_a_missing_score_never_waives(self):
+        members = [idea("https://ideas.example.com/1", "x", 600, "OPEN")]
+        self.assertTrue(ms.activity_waived(members, IE_SCORING))
+        members[0]["score"] = ""
+        self.assertFalse(ms.activity_waived(members, IE_SCORING))
+
+    def test_strong_without_activity_must_be_a_list_of_names(self):
+        for bad in ("ideaexchange", [None], [""], {"ideaexchange": True}):
+            with self.assertRaises(SystemExit) as cm:
+                ms.validate_scoring(dict(IE_SCORING, strong_without_activity=bad))
+            self.assertIn("strong_without_activity", str(cm.exception))
+
+    def test_real_config_waives_ideaexchange_only(self):
+        from common import load_config
+        self.assertEqual(load_config()["scoring"]["strong_without_activity"], ["ideaexchange"])
+
+
+class ArchivedWeightTests(unittest.TestCase):
+    def test_archived_idea_ranks_below_an_open_idea_with_the_same_votes(self):
+        # The Archived title sorts first alphabetically, so only the status weight can put it second.
+        rows, _ = ms.rank([
+            idea("https://ideas.example.com/1", "Ability to report on notes and attachments", 5208, "Archived"),
+            idea("https://ideas.example.com/2", "Set accounts and contacts as inactive", 5208, "Open"),
+        ], IE_SCORING, AS_OF, mode="search")
+        self.assertEqual([r["best_url"] for r in rows], ["https://ideas.example.com/2", "https://ideas.example.com/1"])
+        self.assertEqual(rows[1]["status"], "Archived")  # shown unchanged
+
+    def test_scores_of_2006_ideas_are_tiny_but_still_order_by_status_weight(self):
+        rows, _ = ms.rank([
+            idea("https://ideas.example.com/1", "Ability to report on notes and attachments", 5208, "Archived",
+                 created="2006-10-04T00:00:00+00:00"),
+            idea("https://ideas.example.com/2", "Set accounts and contacts as inactive", 5208, "Open",
+                 created="2006-10-04T00:00:00+00:00"),
+        ], IE_SCORING, AS_OF, mode="search")
+        self.assertEqual([r["status"] for r in rows], ["Open", "Archived"])
+        self.assertEqual([r["final_score"] for r in rows], [0.0, 0.0])  # rounded for display only
+
+    def test_final_score_is_a_quarter_for_archived(self):
+        rows, _ = ms.rank([
+            idea("https://ideas.example.com/1", "Ability to report on notes and attachments", 5208, "Archived",
+                 created="2026-06-01T00:00:00+00:00"),
+            idea("https://ideas.example.com/2", "Set accounts and contacts as inactive", 5208, "Open",
+                 created="2026-06-01T00:00:00+00:00"),
+        ], IE_SCORING, AS_OF, mode="search")
+        self.assertAlmostEqual(rows[1]["final_score"], rows[0]["final_score"] * 0.25, places=3)
+
+    def test_not_planned_as_a_main_status_sinks_too(self):
+        self.assertEqual(ms.status_weight("Not Planned", IE_SCORING), 0.25)
+        self.assertEqual(ms.status_weight("Archived", IE_SCORING), 0.25)
+
+    def test_real_config_has_archived_and_not_planned_at_a_quarter(self):
+        from common import load_config
+        weights = load_config()["scoring"]["status_weights"]
+        self.assertEqual((weights["Archived"], weights["Not Planned"]), (0.25, 0.25))
+
+
 if __name__ == "__main__":
     unittest.main()

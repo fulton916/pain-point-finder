@@ -266,11 +266,37 @@ def threshold_tier(members: list[dict], thresholds: dict) -> int:
     return tier
 
 
+# Statuses that mean an idea is still being asked for (IdeaExchange's main statuses, matched ignoring case).
+# Used with scoring.strong_without_activity: a Delivered or Archived idea is not an open problem.
+OPEN_STATUSES = ("open", "in development")
+
+
+def activity_waived(members: list[dict], scoring: dict) -> bool:
+    """Search mode (issue #31): True when a member from a source in scoring.strong_without_activity
+    reaches its own `strong` threshold while its status is still open (OPEN_STATUSES). Such a source
+    has no activity date to check (the IdeaExchange CSV holds posted dates only), so the 24-month rule
+    cannot apply; votes alone may make the row Strong. Every other source keeps the activity rule."""
+    waived = {str(s).strip().lower() for s in scoring.get("strong_without_activity") or []}
+    if not waived:
+        return False
+    thresholds = scoring.get("source_thresholds") or {}
+    for m in members:
+        if m["source"].lower() not in waived or m["score"] == "":
+            continue
+        if str(m.get("status") or "").strip().lower() not in OPEN_STATUSES:
+            continue
+        t = thresholds.get(m["source"])
+        if t and float(m["score"]) >= float(t["strong"]):
+            return True
+    return False
+
+
 def label_for(source_count: int, top_pct: float, months_since: float | None, sources: list[str], scoring: dict,
-              tier: int | None = None) -> str:
+              tier: int | None = None, waive_activity: bool = False) -> str:
     """Sweep mode (tier None): score strength comes from the percentile within the source.
-    Search mode: it comes from the threshold tier (see threshold_tier). The rest is shared."""
-    recent = months_since is not None and months_since <= float(scoring["strong_activity_months"])
+    Search mode: it comes from the threshold tier (see threshold_tier). The rest is shared.
+    waive_activity (search mode, see activity_waived) lets a strong score count without recent activity."""
+    recent = waive_activity or (months_since is not None and months_since <= float(scoring["strong_activity_months"]))
     if tier is None:
         strong_score = top_pct >= float(scoring["strong_percentile"])
         moderate_score = top_pct >= float(scoring["moderate_percentile"])
@@ -316,6 +342,7 @@ def score_group(g: Group, scoring: dict, as_of: datetime, mode: str = "sweep") -
     status = best.get("status", "")
     final = (top_pct * recency + comment_bonus + cross_bonus) * status_weight(status, scoring)
     tier = threshold_tier(members, scoring.get("source_thresholds") or {}) if mode == "search" else None
+    waive = activity_waived(members, scoring) if mode == "search" else False
 
     return {
         "title": best["title"],
@@ -327,8 +354,8 @@ def score_group(g: Group, scoring: dict, as_of: datetime, mode: str = "sweep") -
         "comments": comments,
         "latest_activity": latest.date().isoformat() if latest else "",
         "status": status,
-        "evidence_label": label_for(len(sources), top_pct, months, sources, scoring, tier),
-        "final_score": round(final, 4),
+        "evidence_label": label_for(len(sources), top_pct, months, sources, scoring, tier, waive),
+        "final_score": final,  # rounded in rank() after sorting, so tiny scores still order correctly
     }
 
 
@@ -351,6 +378,9 @@ def validate_scoring(scoring: dict) -> list[re.Pattern]:
                 raise ValueError
         except (TypeError, ValueError):
             raise SystemExit(f"config.yaml scoring.status_weights.{status} is {w!r}; must be a number >= 0") from None
+    waived = scoring.get("strong_without_activity") or []
+    if not isinstance(waived, list) or not all(isinstance(s, str) and s.strip() for s in waived):
+        raise SystemExit(f"config.yaml scoring.strong_without_activity must be a list of source names (one `- name` per line), got {waived!r}")
     raw_patterns = scoring.get("drop_title_patterns") or []
     if not isinstance(raw_patterns, list):
         raise SystemExit(f"config.yaml scoring.drop_title_patterns must be a list of strings (one `- \"pattern\"` per line), got {raw_patterns!r}")
@@ -380,9 +410,12 @@ def rank(records: list[dict], scoring: dict, as_of: datetime | None = None, mode
     add_percentiles(records)
     groups = dedupe(records, scoring, merge_log)
     rows = [score_group(g, scoring, as_of, mode) for g in groups]
+    # Sort on the exact score, then round for output. Rows older than about 15 years (IdeaExchange ideas
+    # from 2006) score under 0.00005; rounding first tied them all at 0.0 and ranked them by title (issue #31).
     rows.sort(key=lambda r: (-r["final_score"], r["title"].lower(), r["best_url"]))
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
+        r["final_score"] = round(r["final_score"], 4)
     return rows, merge_log
 
 
