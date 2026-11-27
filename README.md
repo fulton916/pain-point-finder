@@ -124,14 +124,17 @@ python ppf.py search "flow fault path email" --sources hn,gh,se --since 24m --li
 |---|---|---|
 | `--sources hn,gh,se,rd,bs,yt,as,ie` | Which sources to ask. For a topic outside software add `rd` (Reddit), `bs` (Bluesky) and, with a key, `yt` (YouTube comments); for a consumer product or app add `as` (App Store reviews). | `hn,gh,se` |
 | `--since 24m` | How far back: `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. | `24m` |
-| `--format md` or `json` | Readable markdown, or JSON for programs. | `md` |
+| `--format md`, `compact` or `json` | Readable markdown with a snippet under each row; `compact` for one line per row (label, source, score, date, status, title and link, pipe-separated, no snippet; what a Claude session should ask for); `json` for programs. | `md` |
 | `--limit N` | Rows to print. | `30` |
 | `--refresh` | Fetch again instead of using the cache. | off |
+| `--trend` | Add one header line per source with its record count per half-year inside the window, for example `reddit: 2024H2 12, 2025H1 31, 2025H2 44` (`meta.trend` in JSON). Counts, not a judgment. | off |
 | `--repos owner/name,owner/other` | GitHub only: search these repos instead of all of GitHub. | all of GitHub |
 | `--title-only` / `--no-title-only` | Hacker News only: match the title only, or title and text. | title only |
 | `--site cooking` | Stack Exchange only: which site to search, by its API name (`salesforce`, `cooking`, `stackoverflow`, `serverfault`, ...). Without it the question picks the site (see below). | picked from the question |
 | `--subreddits sysadmin,devops` | Reddit only: which subreddits to search. Without it the question picks them (see below). The archive has no all-of-Reddit keyword search. | picked from the question |
 | `--apps 426826309,387771637` | App Store only: which apps to read, by the number after `id` in an apps.apple.com link. Without it the iTunes Search API picks up to 3 apps from the words, and the header names them. | picked from the question |
+
+The sources are asked all at once, one thread each, so a question takes about as long as its slowest source (the Reddit archive, a minute or two with retries) instead of the sum. Each collector keeps its own delays and retries, so this breaks no rate limit. The header lists the sources in the order you gave them, whichever answered first, and the local store is written after every source has answered.
 
 Hacker News, GitHub and Stack Exchange all match the **title only** by default, so pick words a frustrated person would put in a title. Hacker News keeps stories with more than 10 points; GitHub keeps issues with at least 1 reaction; Stack Exchange keeps every title match, sorted by votes. Reddit matches title and post text inside a few subreddits and keeps every match, newest first. Bluesky matches the post text across all of Bluesky, most liked first, the top 100 posts per question. YouTube matches videos, not comments: the words pick the top 5 videos, and the rows are those videos' most relevant comments (100 each), so a comment can be about anything said in the video. The App Store source matches apps, not reviews: the words pick up to 3 apps, and the rows are those apps' most-helpful reviews (100 each), so read the review text and check the header names the right apps (`--apps` to choose). `--since` is a window on activity for GitHub but on the posting date for Hacker News, Stack Exchange, Reddit and Bluesky (their APIs offer no activity filter), and on the video's publish date for YouTube, so an old question that is still active does not appear.
 
@@ -173,15 +176,41 @@ The second line of each row is `**Label** · source · score · comments · date
 - **date**: latest activity (for YouTube, the comment's last update, which is its post date when it was never edited), or the post date for Hacker News and the review date for the App Store. `no date` if the source gave none.
 - **status**: `open` or `closed` for GitHub, `answered` for a Stack Exchange question the site marks as answered, the IdeaExchange status (its sub-status, such as `Partial` or `Not Planned`, prints on the line under the row), nothing for Hacker News, Reddit, Bluesky, YouTube or the App Store.
 
+`--format compact` prints the same header (the source line, the trend lines when `--trend` was given, the note and the attribution lines), then a column line and one line per row:
+
+```
+Label | source | score | date | status | title | url
+Moderate | github | 7 reactions | 2026-11-04 | open | New language to detect issues in Salesforce Flow | https://github.com/pmd/pmd/issues/3413
+```
+
+There is no snippet, and `-` stands for a field the source did not give. A `|` inside a title is printed as `/` so the columns stay in place.
+
+`--trend` adds, under the source line, one line per source counting its records per half-year (H1 is January to June, H2 July to December) inside the window, every half-year from the `--since` date to today, zeros included: `reddit: 2024H2 12, 2025H1 31, 2025H2 44`. A record is placed by its posting date, or by its last activity when the source gives no posting date. Records with no date, or dated before the window (an IdeaExchange idea, since `--since` is not applied to that source; a GitHub issue opened earlier and active since) are counted at the end of the line as `outside the window or undated N`. The counts say how many matching records each source returned per half-year, nothing more; a rising count can mean more complaints, a bigger forum, or a wider archive.
+
 A missing field is left out, never guessed. When Stack Exchange was asked, the header also carries its attribution line (CC BY-SA 4.0); when Reddit was asked, a line saying the rows come from the Arctic Shift archive with scores as archived; when Bluesky was asked, a line saying the rows come from the Bluesky public API and that likes measure a post's spread; when YouTube was asked, the line YouTube's API terms require, with links to YouTube's Terms of Service and Google's Privacy Policy, and its part of the header says how many videos were read and how many quota units the question spent (`youtube read the top comments of 5 videos; spent 6 quota units (...)`), or `youtube skipped: YOUTUBE_API_KEY is empty in .env` when there is no key; when the App Store was asked, its part of the header names the apps it read and why (`appstore read the most-helpful reviews of Strava: Run, Bike, Walk (id 426826309), ... (iTunes Search API matches for 'running app gps drops', us store)`), and a line says the rows come from Apple's public endpoints with each review linking to its app's reviews page.
 
-`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` for what a source has to say: which site Stack Exchange searched and why, which subreddits Reddit searched and why, or a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
+`--format json` prints `{"meta": {...}, "rows": [...]}`. `meta` has `query`, `sources`, `since`, `since_date`, `generated`, `requests_sent`, `per_source` (records and `from_cache` per source, plus `error` if one failed and `note` for what a source has to say: which site Stack Exchange searched and why, which subreddits Reddit searched and why, or a skipped subreddit), `records`, `rows`, `shown`, `merges`, `dropped`, `store_totals`, `note` (any source note, then the ranking rules in one paragraph) and `attribution` (credit lines for sources that require one). With `--trend` it also has `trend` (per source, an object of half-year labels to record counts, in order) and `trend_outside` (per source, how many records had no date or fell outside the window). Each row has `rank`, `title`, `best_url`, `evidence_label`, `sources`, `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score` and `snippet`.
 
 Exit code 0 is normal, even with no results. Exit code 2 means a bad flag or that every source failed.
 
 ### The cache
 
 Everything fetched accumulates in `data/evidence.db` (SQLite, ignored by git). The same words with the same flags within 24 hours (`search.cache_hours`) are answered from there with no requests. `--refresh` fetches again. Today the file is that cache plus a log of every search run; ranking against everything ever fetched is a backlog item, not a feature.
+
+### History: what was already asked
+
+```powershell
+python ppf.py history
+```
+
+lists the past searches stored in `data/evidence.db`, newest first, 20 by default (`--limit 50` for more), one line each:
+
+```
+date | query | sources | since | records
+2026-11-27T22:10:04+00:00 | agentforce credits | hackernews,github,stackexchange,reddit | 24m | 143
+```
+
+`query` is the question as stored (lower-cased, single spaces), `sources` are the sources that answered in full on that run (a source that failed or answered in part is not stored, so it is missing from the line), `since` is the window, and `records` is how many records those sources returned together, before dedupe. A run answered entirely from the cache stores nothing new and so does not appear again.
 
 ### Evidence labels
 
@@ -309,7 +338,7 @@ GitHub runs the same suite on every pull request (`.github/workflows/tests.yml`)
 ## File layout
 
 ```
-ppf.py                   the command line: search (one question) and sweep (whole topic)
+ppf.py                   the command line: search (one question), history (past searches) and sweep (whole topic)
 store.py                 SQLite evidence store: every fetched record, every search run
 config.yaml              search defaults, topic, keywords, repos, scoring weights
 .env                     your API keys (ignored by git)

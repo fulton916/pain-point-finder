@@ -121,7 +121,7 @@ class DefaultWindowReturnsRowsAndHeaderSaysNotDateFiltered(unittest.TestCase):
         self.assertEqual(args[1], "salesforce reports")
         self.assertEqual(args[2], ["ie"])
         self.assertEqual(args[3], "24m")  # no --since given: the config default window
-        self.assertEqual(kwargs, {"site": None, "subreddits": None, "apps": None})
+        self.assertEqual(kwargs, {"site": None, "subreddits": None, "apps": None, "trend": False})
 
     @unittest.skipUnless(RAW_JSONL.exists(), "data/raw/ideaexchange.jsonl is not imported here (run import_ideaexchange.py)")
     def test_real_imported_file_answers_salesforce_reports_with_rows_and_the_header_sentence(self):

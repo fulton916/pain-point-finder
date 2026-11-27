@@ -29,8 +29,10 @@ Do not run it for how-to questions, for topics with no public discussion (privat
 Run it with the project's own Python. No `cd` is needed: the tool finds its files from its own location.
 
 ```powershell
-D:\Projects\Pain_Point_Finder\.venv\Scripts\python.exe D:\Projects\Pain_Point_Finder\ppf.py search "<words>"
+D:\Projects\Pain_Point_Finder\.venv\Scripts\python.exe D:\Projects\Pain_Point_Finder\ppf.py search "<words>" --format compact
 ```
+
+Prefer `--format compact`: one line per row with the label, source, score, date, status, title and link, and no snippet, so a result costs a fraction of the markdown form in your context. Use the default markdown form (`--format md`) only when you need the snippets to judge what each post says, or `--format json` when you need to compute with the rows. Add `--trend` when the question is about change over time: "is this growing", "is this new", "is it getting worse", "has it died down". It adds one header line per source counting its records per half-year inside the window. The sources are asked all at once (one thread each), so a question takes about as long as its slowest source, not the sum. Before searching, `python ppf.py history` lists what has already been asked (see below).
 
 If the project lives somewhere else, use that folder for both paths. From a Bash shell, put both paths in double quotes or use forward slashes, or the backslashes are eaten. The folder must hold a `.env` with `GITHUB_TOKEN=` filled in for the GitHub source `STACKEXCHANGE_KEY=` for Stack Exchange (it works without the key at 300 requests a day instead of 10,000) and `YOUTUBE_API_KEY=` for YouTube (without it the `yt` source is skipped and the header says so); Hacker News, Reddit and Bluesky need no key. Tell the user you are running the tool before you do.
 
@@ -46,7 +48,9 @@ If the project lives somewhere else, use that folder for both paths. From a Bash
 |---|---|---|
 | `--sources hn,gh,se,rd,bs,yt,as,ie` | Which sources to ask. `hn` Hacker News, `gh` GitHub issues, `se` Stack Exchange (one site, picked from the question), `rd` Reddit through the Arctic Shift archive (not in the default list: its scores are stale, see below), `bs` Bluesky through its public API (not in the default list: likes measure a post's spread, see below; add it for general topics such as shoes, cooking, clothes or benefits), `yt` YouTube comments through YouTube Data API v3 (not in the default list: it needs Sean's key and spends a daily quota, see below; add it for topics people talk about under videos: gear, shoes, cooking, clothes), `as` App Store customer reviews through Apple's public iTunes Search API and review feed (keyless; not in the default list: one app's reviews describe one product, see below; add it for consumer apps and products), `ie` IdeaExchange CSV (local; `--since` is not applied to it, the header says so, and the word `salesforce` in the question is skipped for it). | `hn,gh,se` from config.yaml |
 | `--since 24m` | How far back. `24m` months, `30d` days, `8w` weeks, `2y` years, or `YYYY-MM-DD`. For GitHub this is a window on activity; for Hacker News, Stack Exchange, Reddit and Bluesky it is on the posting date, for YouTube on the video's publish date, and for the App Store on the review's date, so an old question that is still active does not appear. | `24m` |
+| `--format compact` | One line per row (label, source, score with its unit, date, status, title and link, pipe-separated), no snippet, after the same header (source line, trend lines, note, attribution). `-` is a field the source did not give; a pipe in a title is printed as `/`. Prefer this. | `md` |
 | `--format json` | JSON instead of markdown. Use when you need to compute with the rows. | `md` |
+| `--trend` | One header line per source counting its records per half-year inside the window, every half-year from the `--since` date to today, zeros included: `reddit: 2024H2 12, 2025H1 31, 2025H2 44` (H1 is January to June, H2 July to December). Placed by posting date, else last activity; records with no date or dated before the window are counted at the end as `outside the window or undated N`. Add it for "is this growing", "is this new", "is it getting worse". The numbers are counts of matching records, nothing more: say "mentions rose from 12 to 44 per half-year in r/salesforce", not "the problem is growing", unless the user asks you to interpret, and then say which is which. | off |
 | `--limit 10` | Rows to print. | `30` |
 | `--refresh` | Fetch again instead of using the cache. The same words and flags within 24 hours are served from the local store with no requests. Only use this when the user asks for fresh data. | off |
 | `--repos owner/name,owner/other` | GitHub only: search just these repos instead of all of GitHub. All repos go into one query, so the cost is one request per page; a long list fails when the query passes GitHub's 256-character limit. | all of GitHub |
@@ -64,6 +68,20 @@ Keep the rate limits in mind: GitHub search allows 30 requests a minute, and eac
 **About the App Store source.** `as` asks Apple's public iTunes Search API for up to 3 apps matching the words, then reads each app's 100 most-helpful customer reviews from the public review feed, with no key. Four things follow. The words pick apps, not reviews, so a row is one user's review of one app, and it may be about anything in that app: read the text, which starts with the star rating (`(2/5 stars)`; low stars are the complaint signal); the app's name ends the title in brackets. Apple matches app names loosely (nonsense words still return apps), so always check the apps the header names (`appstore read the most-helpful reviews of Strava: Run, Bike, Walk (id 426826309), ... (iTunes Search API matches for 'running app gps drops', us store)`) and run again with `--apps` when they are wrong. Helpful votes count the readers of one app's reviews who agreed, and one app's reviews describe one product, so an App Store row alone is never labeled above Moderate. Each row links to the app's reviews page on apps.apple.com (Apple has no page per review; the review id rides in the link's `review` parameter). Reviews are dated by their last edit, and `--since` drops older ones, so a popular app with few recent reviews can return little; widen `--since` before concluding anything.
 
 **About the Reddit source.** Reddit closed its public Data API to new apps on 2026-10-31 and shuts it for everyone in March 2027, so `rd` reads the Arctic Shift archive (github.com/ArthurHeitmann/arctic_shift) instead. Three things follow. It searches only a few subreddits (picked from the question, or `--subreddits`), newest posts first, at most 100 per subreddit; the header names them, so check they fit the question and override them when they do not. Its scores are what the archiver saw, usually seconds after posting, so a post with 2 upvotes may have hundreds today; treat Reddit scores as a floor and the comment count as the better signal. It may stop working after March 2027; if `reddit (failed: ...)` appears in the header, say so and go on with the other sources.
+
+## Reading the compact output
+
+`--format compact` prints the same header as the markdown form (the source line, the trend lines when `--trend` was given, the note and the attribution lines), then a column line and one line per row, in rank order:
+
+```
+Label | source | score | date | status | title | url
+Moderate | github | 7 reactions | 2026-11-04 | open | New language to detect issues in Salesforce Flow | https://github.com/pmd/pmd/issues/3413
+Anecdotal | reddit | 2 upvotes | 2026-09-12 | - | Flow fault emails stopped arriving | https://www.reddit.com/r/salesforce/comments/...
+```
+
+The columns mean what the markdown fields below mean: the label, the source (`github + ideaexchange` when two had it), the score in the source's unit, the latest activity date (the post date for sources without one), the status, the title and the link. `-` is a field the source did not give. There is no snippet: when you need to know what a post says, open the link or run the question again with `--format md`. The comment count is not in the compact line; use `--format md` or `json` when it matters (Reddit, where the archived score is stale).
+
+With `--trend`, the header holds a `Trend` line and then one line per source: `reddit: 2024H2 12, 2025H1 31, 2025H2 44`. Report them as counts of matching records per half-year, with the source and the window, and keep them apart from your interpretation.
 
 ## Reading the markdown output
 
@@ -114,6 +132,7 @@ The order is the tool's ranking: score within this result set, then recency, com
 | `dropped` | Rows removed as noise by `scoring.drop_title_patterns`. |
 | `store_totals` | How many records the local store holds per source, in total. |
 | `note` | Any source note first (which site Stack Exchange searched and why; which subreddits Reddit searched and why; a skipped subreddit; how many videos YouTube read and the quota spent, or that it was skipped for a missing key; which apps the App Store source read and why), then the ranking and labeling rules in one paragraph. Repeat it to the user when they ask how the order was decided. |
+| `trend`, `trend_outside` | Only with `--trend`. `trend` is per source an object of half-year labels to record counts, in order (`{"reddit": {"2024H2": 12, "2025H1": 31, "2025H2": 44}}`); `trend_outside` is per source the count of records with no date or dated outside the window. |
 | `attribution` | A list of sentences, one per source that requires credit or a caveat (Stack Exchange: CC BY-SA 4.0; Reddit: archive, scores as archived; Bluesky: public API, likes measure spread; YouTube: the terms line with links to YouTube's Terms of Service and Google's Privacy Policy; App Store: Apple's public endpoints, helpful votes count one app's readers). Empty when none does. Pass them on when you quote those rows. |
 
 `rows` is a list in rank order. Each row has: `rank`, `title`, `best_url`, `evidence_label`, `sources` (`;`-separated), `source_count`, `best_source`, `raw_score`, `comments`, `latest_activity`, `status`, `top_normalized_score`, `final_score`, `snippet`. Empty strings mean the source had no value. Nothing is guessed.
@@ -133,6 +152,14 @@ Exit code `0` is normal, including zero results. Exit code `2` means a bad flag,
 - **Read YouTube likes as agreement under one video.** A comment with 400 likes was liked by 400 viewers of that video; it is one video's audience, not a count of people with the problem. Quote the likes and replies as given, name the video (the body starts with its title), keep the link, and pass on the YouTube terms line from the header when you quote a row.
 - **Read App Store reviews as one product's users.** A review with 48 helpful votes was agreed with by 48 readers of that app's reviews; it says something about that app, not about the market. Quote the stars, the votes and the date as given, name the app (it ends the title in brackets), keep the link, and lean on whether several apps' reviews, or other sources, show the same problem.
 - **Do not edit the tool from another project.** Report problems to Sean instead; the project has its own issues and working rules.
+
+## What was already asked
+
+```powershell
+D:\Projects\Pain_Point_Finder\.venv\Scripts\python.exe D:\Projects\Pain_Point_Finder\ppf.py history
+```
+
+lists the past searches stored in the local database, newest first, 20 by default (`--limit 50` for more), one line each: `date | query | sources | since | records`. `query` is the question as stored (lower-cased), `sources` the sources that answered in full on that run, `since` the window, `records` how many records those sources returned together before dedupe. Check it before a search when the user may have asked before: the same words and flags within 24 hours are answered from the cache anyway, and an older entry tells you what phrasing was tried. A failed or partial source is not stored, and a run answered from the cache adds no line.
 
 ## When something goes wrong
 

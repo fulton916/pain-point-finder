@@ -8,7 +8,8 @@ later work (percentiles against a real population, trend checks) has something t
 
 Tables
     records     one row per (source, url); the 11 common fields plus first_seen
-    queries     one row per search run per source: what was asked, when, how many hits
+    queries     one row per search run per source: what was asked, when, how many hits; `history()`
+                groups them back into runs
     query_hits  which records a query run returned, so a cached answer can be rebuilt
 
 Standard library only. The file lives at paths.store in config.yaml (gitignored).
@@ -156,6 +157,35 @@ class Store:
         ).fetchall()
         log.info("%s: %d records from cache (fetched %s)", source, len(hits), row["fetched_at"])
         return [_to_record(h) for h in hits]
+
+    # ---------- history ----------
+
+    def history(self, limit: int = 20) -> list[dict]:
+        """Past search runs, newest first, at most `limit`. A run is every `queries` row sharing one question,
+        scope and fetched_at (ppf.run_search logs all of a run's sources with one timestamp). Each run:
+        fetched_at, query (lower-cased words), scope, since (from the scope), sources (in the order logged) and
+        records (the hits over those sources; rows after dedupe are not stored). A source that failed or
+        answered in part is not logged, and a run served from the cache logs nothing new."""
+        runs: list[dict] = []
+        last_key = None
+        cur = self.conn.execute(
+            "SELECT query_key, scope, fetched_at, source, hit_count FROM queries ORDER BY fetched_at DESC, id"
+        )
+        for r in cur:
+            key = (r["fetched_at"], r["query_key"], r["scope"])
+            if key != last_key:
+                if len(runs) == limit:
+                    break
+                first = r["scope"].split("|", 1)[0]
+                runs.append({
+                    "fetched_at": r["fetched_at"], "query": r["query_key"], "scope": r["scope"],
+                    "since": first.removeprefix("since=") if first.startswith("since=") else "",
+                    "sources": [], "records": 0,
+                })
+                last_key = key
+            runs[-1]["sources"].append(r["source"])
+            runs[-1]["records"] += r["hit_count"]
+        return runs
 
 
 def _to_record(row: sqlite3.Row) -> dict:
