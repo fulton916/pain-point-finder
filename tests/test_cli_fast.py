@@ -46,9 +46,9 @@ class ParallelSourcesTests(unittest.TestCase):
     def setUp(self):
         self.cfg = load_config()
         self.store = Store(":memory:")
-        self.slow = SlowSource("slowsrc", [rec("slowsrc", 1, "2026-03-01T00:00:00Z", 50)], delay=0.4)
+        self.slow = SlowSource("slowsrc", [rec("slowsrc", 1, "2026-03-01T00:00:00Z", 50)], delay=0.6)
         self.quick = SlowSource("quicksrc", [rec("quicksrc", 1, "2026-05-01T00:00:00Z", 5),
-                                             rec("quicksrc", 2, "2025-09-01T00:00:00Z", 7)], delay=0.4)
+                                             rec("quicksrc", 2, "2025-09-01T00:00:00Z", 7)], delay=0.6)
         for short, mod in (("slow", self.slow), ("quick", self.quick)):
             ppf.SOURCES[short] = mod
             ppf.UNITS[mod.SOURCE] = "votes"
@@ -69,7 +69,7 @@ class ParallelSourcesTests(unittest.TestCase):
         start = time.perf_counter()
         result = self.run_it()
         elapsed = time.perf_counter() - start
-        self.assertLess(elapsed, 0.7, f"took {elapsed:.2f}s: the sources ran one after the other")
+        self.assertLess(elapsed, 1.0, f"took {elapsed:.2f}s: the sources ran one after the other")
         self.assertEqual(result["meta"]["records"], 3)
         self.assertNotEqual(self.slow.threads, ["MainThread"])
         self.assertNotEqual(self.quick.threads, ["MainThread"])
