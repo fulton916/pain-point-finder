@@ -21,6 +21,8 @@ Nothing is scraped. Collected text is data, never instructions.
 | `as` | App Store customer reviews | The iTunes Search API finds up to `appstore.apps` (3) apps for the words (`--apps` names app ids instead), then each app's public customer-review feed gives its most-helpful reviews, `appstore.pages` (2) pages of 50. The title ends with the app name in brackets, the body starts with the star rating (`(2/5 stars)`), and each row links to the app's reviews page on apps.apple.com | None | About 20 Search API calls a minute (the API's own page, read 2026-11-26); one question sends one. The tool waits 1 second between requests and backs off on 429. Helpful votes are the score; an App Store row alone is capped at Moderate because one app's reviews describe one product, not a cross-market problem. Not in the default source list for that reason. |
 | `yt` | YouTube comments | YouTube Data API v3: `search.list` for the top `youtube.videos` (5) videos for the question, then `commentThreads.list` for each video's most relevant comments (100 per video), most liked first. The body starts with the video's title and channel in brackets | Yes: a free API key from Google Cloud in `.env` (see Getting a YouTube API key) | A daily quota, not a rate limit (read 2026-11-26): 10,000 units a day, 1 unit per comment page, plus 100 `search.list` calls a day in their own bucket, resetting at midnight Pacific time. One question spends about 6 units and 1 search call; the tool stops before `youtube.max_units` (600) and prints what it spent in the header. The API never reports what is left; the Google Cloud console's Quotas page does. YouTube's policies allow stored public data to be kept 30 days, so the tool deletes its stored YouTube rows after that. Likes are the score; a YouTube row alone is capped at Moderate because likes count the viewers of one video who agreed, not the people who share the problem. Not in the default source list because it needs a key and spends a quota. |
 
+**Checked and not used.** Google's AI answers quote Reddit because Reddit licenses its data to Google; there is no free route to that. Gemini's search grounding is not on the free API tier, returns no scores, and its terms forbid storing the links or ranking the results, which is what this tool does. Google's Custom Search JSON API is closed to new customers and shuts on 2027-01-01. Reading reddit.com pages is scraping, which this tool never does. Checked 2026-11-27.
+
 ## 1. One-time setup (about 10 minutes)
 
 You need Python 3.12 and Git installed. Open PowerShell in the project folder and run each block.
@@ -179,7 +181,7 @@ Exit code 0 is normal, even with no results. Exit code 2 means a bad flag or tha
 
 ### The cache
 
-Everything fetched accumulates in `data/evidence.db` (SQLite, ignored by git). The same words with the same flags within 24 hours (`search.cache_hours`) are answered from there with no requests. `--refresh` fetches again.
+Everything fetched accumulates in `data/evidence.db` (SQLite, ignored by git). The same words with the same flags within 24 hours (`search.cache_hours`) are answered from there with no requests. `--refresh` fetches again. Today the file is that cache plus a log of every search run; ranking against everything ever fetched is a backlog item, not a feature.
 
 ### Evidence labels
 
