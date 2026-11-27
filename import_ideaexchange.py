@@ -5,10 +5,13 @@
 
 We do not scrape IdeaExchange. You make data/ideaexchange.csv yourself with these columns:
 
-    title, url, points, votes, status, posted_date, comments
+    title, url, points, votes, status, posted_date, comments, substatus
 
 1 vote = 10 points on IdeaExchange. `votes` is the score. If a row has points but no votes,
 votes is derived as points / 10 and the row is logged, so nothing is silently guessed.
+`substatus` is optional (issue #31): the site's second status line (Partial, Not Planned, Complete,
+Building, Submitted, Never, On Roadmap, Beta Testing). It goes into the body so it prints under the
+row; only the main `status` drives scoring.status_weights.
 
 Writes data/raw/ideaexchange.jsonl.
 
@@ -37,25 +40,41 @@ from common import (
 
 SOURCE = "ideaexchange"
 REQUIRED_COLUMNS = ["title", "url", "points", "votes", "status", "posted_date", "comments"]
+OPTIONAL_COLUMNS = ["substatus"]
+# Printed in the search header (issue #31): the CSV has a posted date only (2006 to 2016 for the
+# current rows), and voting on an open idea goes on for years, so the --since window is not applied.
+NOT_DATE_FILTERED = "IdeaExchange rows are not date-filtered (the CSV has posted dates only)."
 
 
 def search(session, cfg: dict, query: str, since, **options) -> list[dict]:
     """Local search over the imported CSV (data/raw/ideaexchange.jsonl): every query word must
-    appear in the title. No network. Rows without a parseable date are kept (never guess)."""
-    from merge_and_score import parse_date  # local import: avoids a cycle at module load
+    appear in the title. No network.
 
+    `since` is ignored (issue #31, option a): the CSV holds the posted date only, and an idea posted
+    in 2007 may still be gathering votes, so a date window would hide every row. The header says so
+    through the `info` option (list[str]), the same hook collect_reddit.py uses.
+
+    A query word equal to the config `topic` (Salesforce) is skipped: every idea in the CSV is about
+    the topic, and its titles never repeat the word, so "salesforce reports" means "reports" here."""
     path = ROOT / cfg["paths"]["raw_dir"] / "ideaexchange.jsonl"
     if not path.exists():
-        log.warning("ideaexchange: %s not found; run import_ideaexchange.py first", path)
+        # Part of the answer is missing, so the header says so (`notes`, like a missing YouTube key)
+        # and ppf.py does not cache the empty result.
+        why = f"ideaexchange skipped: {path.name} not found; run import_ideaexchange.py first."
+        log.warning("%s", why)
+        if options.get("notes") is not None:
+            options["notes"].append(why)
         return []
-    words = [w for w in query.lower().split() if w]
+    if options.get("info") is not None:
+        options["info"].append(NOT_DATE_FILTERED)
+    topic = str(cfg.get("topic") or "").strip().lower()
+    words = [w for w in query.lower().split() if w and w != topic]
+    if topic and len(words) < len(query.split()):
+        log.info("ideaexchange: skipped the topic word %r (every idea in the CSV is about it)", topic)
     records = []
     for rec in read_jsonl(path):
         title = (rec.get("title") or "").lower()
         if not all(w in title for w in words):
-            continue
-        created = parse_date(rec.get("created_at"))
-        if created is not None and created < since:
             continue
         records.append(rec)
     records.sort(key=lambda r: (-(r["score"] if r["score"] != "" else -1), r["url"]))
@@ -83,6 +102,10 @@ def row_to_record(row: dict[str, str], fetched_at: str, line_no: int) -> dict:
     body = ""
     if points != "":
         body = f"points: {points}"
+    substatus = (row.get("substatus") or "").strip()
+    if substatus:
+        # Shown under the row (ppf.py prints the body as the snippet); the weight comes from `status` only.
+        body = f"{body}; sub-status: {substatus}" if body else f"sub-status: {substatus}"
     return make_record(
         source=SOURCE,
         url=(row.get("url") or "").strip(),

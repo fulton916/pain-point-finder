@@ -33,7 +33,7 @@ Use only free, official APIs. Never scrape.
 | `hn` | Hacker News Algolia API (`hn.algolia.com/api/v1/search`) | Live | None |
 | `gh` | GitHub issues search API | Live | `GITHUB_TOKEN` in `.env`, read-only fine-grained |
 | `se` | Stack Exchange API v2.3 `/search/advanced`, one site per question: `--site`, else picked from the question's words by the `stackexchange.sites` map, else `salesforce` | Live (terms pasted and cleared 2026-11-25) | `STACKEXCHANGE_KEY` in `.env`, optional (300/day without) |
-| `ie` | IdeaExchange, from `data/ideaexchange.csv` made by hand | Live (local search over `data/ideaexchange.csv`: top 30 ideas by points, read from ideas.salesforce.com on 2026-11-25) | None |
+| `ie` | IdeaExchange, from `data/ideaexchange.csv` made by hand; `--since` is not applied (the CSV has posted dates only) and the header says so; a query word equal to the config `topic` is skipped | Live (local search over `data/ideaexchange.csv`: top 30 ideas by points, read from ideas.salesforce.com on 2026-11-25; `substatus` column read 2026-11-27) | None |
 | `rd` | Reddit, via the Arctic Shift archive API (`arctic-shift.photon-reddit.com/api/posts/search`), subreddits from `--subreddits`, else the `reddit.topics` map, else the archive's subreddit name search, else `reddit.subreddits` | Live (2026-11-25). Reddit's own Data API closed to new apps 2026-10-31 and shuts in March 2027; the archive may stop then too | None |
 | `bs` | Bluesky, via the public AppView API (`app.bsky.feed.searchPosts`, sort=top, 100 per page, up to `bluesky.max_pages` pages; in practice one, because on 2026-11-26 every unauthenticated request with a `cursor` got HTTP 403 "forbidden by administrative rules"); likes are the score, replies the comments | Live (2026-11-26). Rate limit: none published for `public.api.bsky.app` or `api.bsky.app` (the docs say "generous", HTTP 429 when crossed), checked 2026-11-26; the tool waits 1 second between pages. The documented host `public.api.bsky.app` answered every request from here with an HTML 403 on 2026-11-26, so the tool tries it once and falls back to `api.bsky.app` | None |
 | `as` | App Store customer reviews, via the iTunes Search API (`itunes.apple.com/search?term=<words>&entity=software&limit=5`, the first `appstore.apps` (3) matches; `--apps` names app ids instead, with one `itunes.apple.com/lookup` call for their names) and each app's public customer-review feed (`itunes.apple.com/<country>/rss/customerreviews/page=<n>/id=<appId>/sortBy=mostHelpful/json`, 50 a page, `appstore.pages` (2) pages); helpful votes (`im:voteCount`) are the score, the star rating leads the body as `(2/5 stars)`, the app name ends the title in brackets, url is the app's reviews page with the review id as a `review` query parameter (Apple has no page per review) | Live (2026-11-26). Not in `search.default_sources` (one app's reviews describe one product). Rate limit: the Search API page says "approximately 20 calls per minute (subject to change)", read 2026-11-26; the tool waits 1 second between requests and backs off on 429. Terms read 2026-11-26: the Search API's attribution and no-caching rules cover music and video previews only, the review feed has no terms page of its own, and Apple's website terms forbid robots on www.apple.com pages, which the tool never reads | None |
@@ -79,9 +79,9 @@ A search source is a module with `SOURCE` and `search(session, cfg, query, since
 
 ## IdeaExchange CSV columns
 
-`title, url, points, votes, status, posted_date, comments`
+`title, url, points, votes, status, posted_date, comments, substatus`
 
-Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score.
+Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score. `status` is the site's main status (Open, In Development, Delivered, Archived) and drives `scoring.status_weights`; `substatus` (optional column) is the site's second status line (Partial, Not Planned, Complete, Building, Submitted, Never, On Roadmap, Beta Testing), written into the body so it prints under the row and never changes the weight.
 
 ## Scoring (merge_and_score.py)
 
@@ -92,10 +92,11 @@ Note: 1 vote = 10 points on IdeaExchange. Use `votes` as the score.
    - Recency: halve the weight every 12 months since last activity.
    - Comments: small bonus.
    - Cross-source: bonus when the same problem shows up in 2+ sources.
-   - Status: multiply by `scoring.status_weights` (closed 0.5, Delivered 0.25, answered 0.5, default 1.0) in both modes, so solved problems sink. Show the status unchanged. Stack Exchange rows are `answered` when the API says `is_answered`, else empty.
+   - Status: multiply by `scoring.status_weights` (closed 0.5, Delivered 0.25, Archived 0.25, Not Planned 0.25, answered 0.5, default 1.0) in both modes, so solved or abandoned problems sink. Show the status unchanged. Stack Exchange rows are `answered` when the API says `is_answered`, else empty.
 4. **Evidence label.**
    - Sweep mode (percentiles): "Strong" is 2+ sources, or top 10% in its source with activity in the last 24 months; "Moderate" is top 25%; "Anecdotal" is everything else.
-   - Search mode (raw thresholds in `scoring.source_thresholds`): "Strong" is 2+ sources, or at or above `strong` with activity in the last 24 months; "Moderate" is at or above `moderate`; "Anecdotal" otherwise.
+   - Search mode (raw thresholds in `scoring.source_thresholds`): "Strong" is 2+ sources, or at or above `strong` with activity in the last 24 months; "Moderate" is at or above `moderate`; "Anecdotal" otherwise. Sources in `scoring.strong_without_activity` (IdeaExchange: the CSV has posted dates only) reach Strong on score alone while the row's status is Open or In Development (`merge_and_score.OPEN_STATUSES`); Delivered or Archived rows do not.
+   - Rows are sorted on the exact final score and rounded to 4 decimals afterwards, so ideas from 2006 (score under 0.00005) still order by status weight instead of tying at 0.0.
    - Hacker News rows alone are capped at Moderate (`scoring.label_caps`), and so are Reddit rows, because archived scores are usually the score at posting time, and Bluesky rows, because likes measure how far a short post spread, not how many people share the problem, and YouTube rows, because comment likes count the viewers of one video who agreed, and App Store rows, because one app's reviews describe one product.
 5. **Output.** Sweep writes `data/output/ranked.csv` and `merge_log.csv`. Search prints markdown (`**Label** · source · score · comments · date · status` under each linked title) or JSON (`meta` with `per_source`, `merges`, `dropped`, `note`; `rows`).
 

@@ -1,31 +1,31 @@
-title,url,points,votes,status,posted_date,comments
-"Dependent page layouts - data rules to show, hide, or make fields/sections req'd",https://ideas.salesforce.com/s/idea/a0B8W00000GdiWiUAJ,125570,12619,Delivered,2006-11-16,
-Increase the limit on the number of reports a user can subscribe to,https://ideas.salesforce.com/s/idea/a0B8W00000Gdn8WUAR,95040,9608,In Development,2015-03-05,
-"Schedule Reports as Attachments and add Adobe PDF, Excel Option",https://ideas.salesforce.com/s/idea/a0B8W00000GdigkUAB,93080,9376,Delivered,2009-01-08,
-Inline Editing for Related Lists,https://ideas.salesforce.com/s/idea/a0B8W00000GdlpwUAB,90380,9060,Open,2007-10-05,
-Allow more than 3 columns in dashboards,https://ideas.salesforce.com/s/idea/a0B8W00000GdizIUAR,84450,8587,Delivered,2007-02-11,
-Related List Sorting - More than one choice,https://ideas.salesforce.com/s/idea/a0B8W00000GdjXtUAJ,82870,8323,Delivered,2007-08-14,
-Workflow email alerts to contacts should be recordable as activity history,https://ideas.salesforce.com/s/idea/a0B8W00000Gdig2UAB,82800,8314,Delivered,2007-09-07,
-Add a new Standard field type: Address,https://ideas.salesforce.com/s/idea/a0B8W00000GdiWSUAZ,81940,8250,Delivered,2007-07-12,
-Cross Object Merge Fields in Email Template,https://ideas.salesforce.com/s/idea/a0B8W00000GdifOUAR,79150,7931,Open,2009-03-12,
-Roll-Up Summary Fields: Formulas Rather than Static Criteria,https://ideas.salesforce.com/s/idea/a0B8W00000Gde5QUAR,76290,7665,Delivered,2007-10-26,
-"Nesting Folders / Sub-folders for Reports, Dashboards, Email Templates, etc.",https://ideas.salesforce.com/s/idea/a0B8W00000GdoqDUAR,70270,7109,Delivered,2009-01-02,
-Lightning Experience LEX - lightning speed please!,https://ideas.salesforce.com/s/idea/a0B8W00000GdcZVUAZ,67580,6802,In Development,2016-03-04,
-Dupe Alerts,https://ideas.salesforce.com/s/idea/a0B8W00000GdjQTUAZ,67200,6818,Delivered,2006-10-05,
-Ability to Set Accounts & Contacts as Inactive,https://ideas.salesforce.com/s/idea/a0B8W00000GdjRTUAZ,65910,6683,Open,2007-04-19,
-Ability to report on Users' Permission Set Assignments,https://ideas.salesforce.com/s/idea/a0B8W00000GdWJ0UAN,64960,6520,Delivered,2012-03-07,
-Link a single Contact to Multiple Accounts,https://ideas.salesforce.com/s/idea/a0B8W00000GdiVVUAZ,64360,6582,Delivered,2007-01-24,
-Allow existing picklist fields to use Global Picklists,https://ideas.salesforce.com/s/idea/a0B8W00000GdhF9UAJ,61230,6137,Open,2016-02-29,
-Eliminate Need for Master-Detail Relationship for Roll-ups,https://ideas.salesforce.com/s/idea/a0B8W00000Gdb2FUAR,60290,6105,Delivered,2008-02-19,
-Lightning Experience - Recycle Bin,https://ideas.salesforce.com/s/idea/a0B8W00000Gdk08UAB,54960,5542,Delivered,2015-10-09,
-Allow Task(s) to be assigned to a Queue,https://ideas.salesforce.com/s/idea/a0B8W00000GdjZtUAJ,54490,5477,Delivered,2010-01-22,
-Report on Field History Tracking for Detail Object in Master-Detail Relationship,https://ideas.salesforce.com/s/idea/a0B8W00000Gdfj4UAB,54070,5427,Delivered,2007-05-14,
-Report Filters Should Be Able To Compare Fields To Each Other,https://ideas.salesforce.com/s/idea/a0B8W00000GdVtrUAF,53640,5396,Delivered,2008-05-23,
-State and Country should be pick lists,https://ideas.salesforce.com/s/idea/a0B8W00000GdilmUAB,53270,5505,Delivered,2006-10-10,
-"Multiple Contacts to be allowed on one activity, be it a task or event! Please!",https://ideas.salesforce.com/s/idea/a0B8W00000GdbG6UAJ,52860,5366,Delivered,2007-03-09,
-Ability to PRINT Dashboards,https://ideas.salesforce.com/s/idea/a0B8W00000GdW00UAF,52140,5348,Delivered,2006-10-10,
-Reporting on Notes & Attachments,https://ideas.salesforce.com/s/idea/a0B8W00000GdjTaUAJ,51500,5208,Archived,2006-10-04,
-Configurable default list view in Lightning Experience,https://ideas.salesforce.com/s/idea/a0B8W00000GdcxPUAR,51430,5179,Delivered,2016-08-12,
-"Allow custom ""Text Area (Long)"" fields on Activities.",https://ideas.salesforce.com/s/idea/a0B8W00000GdeHWUAZ,49290,4967,Open,2008-12-03,
-Frequency Reports from Multi-Select Picklists,https://ideas.salesforce.com/s/idea/a0B8W00000GdjTJUAZ,47730,4783,Open,2006-10-19,
-Intelligent Related Lists (Filterable by Admin),https://ideas.salesforce.com/s/idea/a0B8W00000GdimuUAB,47620,4784,Delivered,2006-10-24,
+title,url,points,votes,status,posted_date,comments,substatus
+"Dependent page layouts - data rules to show, hide, or make fields/sections req'd",https://ideas.salesforce.com/s/idea/a0B8W00000GdiWiUAJ,125570,12619,Delivered,2006-11-16,,Partial
+Increase the limit on the number of reports a user can subscribe to,https://ideas.salesforce.com/s/idea/a0B8W00000Gdn8WUAR,95040,9608,In Development,2015-03-05,,Building
+"Schedule Reports as Attachments and add Adobe PDF, Excel Option",https://ideas.salesforce.com/s/idea/a0B8W00000GdigkUAB,93080,9376,Delivered,2009-01-08,,Complete
+Inline Editing for Related Lists,https://ideas.salesforce.com/s/idea/a0B8W00000GdlpwUAB,90380,9060,Open,2007-10-05,,Submitted
+Allow more than 3 columns in dashboards,https://ideas.salesforce.com/s/idea/a0B8W00000GdizIUAR,84450,8587,Delivered,2007-02-11,,Complete
+Related List Sorting - More than one choice,https://ideas.salesforce.com/s/idea/a0B8W00000GdjXtUAJ,82870,8323,Delivered,2007-08-14,,Complete
+Workflow email alerts to contacts should be recordable as activity history,https://ideas.salesforce.com/s/idea/a0B8W00000Gdig2UAB,82800,8314,Delivered,2007-09-07,,Complete
+Add a new Standard field type: Address,https://ideas.salesforce.com/s/idea/a0B8W00000GdiWSUAZ,81940,8250,Delivered,2007-07-12,,Complete
+Cross Object Merge Fields in Email Template,https://ideas.salesforce.com/s/idea/a0B8W00000GdifOUAR,79150,7931,Open,2009-03-12,,Submitted
+Roll-Up Summary Fields: Formulas Rather than Static Criteria,https://ideas.salesforce.com/s/idea/a0B8W00000Gde5QUAR,76290,7665,Delivered,2007-10-26,,Partial
+"Nesting Folders / Sub-folders for Reports, Dashboards, Email Templates, etc.",https://ideas.salesforce.com/s/idea/a0B8W00000GdoqDUAR,70270,7109,Delivered,2009-01-02,,Complete
+Lightning Experience LEX - lightning speed please!,https://ideas.salesforce.com/s/idea/a0B8W00000GdcZVUAZ,67580,6802,In Development,2016-03-04,,Building
+Dupe Alerts,https://ideas.salesforce.com/s/idea/a0B8W00000GdjQTUAZ,67200,6818,Delivered,2006-10-05,,Complete
+Ability to Set Accounts & Contacts as Inactive,https://ideas.salesforce.com/s/idea/a0B8W00000GdjRTUAZ,65910,6683,Open,2007-04-19,,Not Planned
+Ability to report on Users' Permission Set Assignments,https://ideas.salesforce.com/s/idea/a0B8W00000GdWJ0UAN,64960,6520,Delivered,2012-03-07,,Complete
+Link a single Contact to Multiple Accounts,https://ideas.salesforce.com/s/idea/a0B8W00000GdiVVUAZ,64360,6582,Delivered,2007-01-24,,Complete
+Allow existing picklist fields to use Global Picklists,https://ideas.salesforce.com/s/idea/a0B8W00000GdhF9UAJ,61230,6137,Open,2016-02-29,,Not Planned
+Eliminate Need for Master-Detail Relationship for Roll-ups,https://ideas.salesforce.com/s/idea/a0B8W00000Gdb2FUAR,60290,6105,Delivered,2008-02-19,,Partial
+Lightning Experience - Recycle Bin,https://ideas.salesforce.com/s/idea/a0B8W00000Gdk08UAB,54960,5542,Delivered,2015-10-09,,Complete
+Allow Task(s) to be assigned to a Queue,https://ideas.salesforce.com/s/idea/a0B8W00000GdjZtUAJ,54490,5477,Delivered,2010-01-22,,Complete
+Report on Field History Tracking for Detail Object in Master-Detail Relationship,https://ideas.salesforce.com/s/idea/a0B8W00000Gdfj4UAB,54070,5427,Delivered,2007-05-14,,Partial
+Report Filters Should Be Able To Compare Fields To Each Other,https://ideas.salesforce.com/s/idea/a0B8W00000GdVtrUAF,53640,5396,Delivered,2008-05-23,,Complete
+State and Country should be pick lists,https://ideas.salesforce.com/s/idea/a0B8W00000GdilmUAB,53270,5505,Delivered,2006-10-10,,Complete
+"Multiple Contacts to be allowed on one activity, be it a task or event! Please!",https://ideas.salesforce.com/s/idea/a0B8W00000GdbG6UAJ,52860,5366,Delivered,2007-03-09,,Complete
+Ability to PRINT Dashboards,https://ideas.salesforce.com/s/idea/a0B8W00000GdW00UAF,52140,5348,Delivered,2006-10-10,,Complete
+Reporting on Notes & Attachments,https://ideas.salesforce.com/s/idea/a0B8W00000GdjTaUAJ,51500,5208,Archived,2006-10-04,,Never
+Configurable default list view in Lightning Experience,https://ideas.salesforce.com/s/idea/a0B8W00000GdcxPUAR,51430,5179,Delivered,2016-08-12,,Complete
+"Allow custom ""Text Area (Long)"" fields on Activities.",https://ideas.salesforce.com/s/idea/a0B8W00000GdeHWUAZ,49290,4967,Open,2008-12-03,,Not Planned
+Frequency Reports from Multi-Select Picklists,https://ideas.salesforce.com/s/idea/a0B8W00000GdjTJUAZ,47730,4783,Open,2006-10-19,,Submitted
+Intelligent Related Lists (Filterable by Admin),https://ideas.salesforce.com/s/idea/a0B8W00000GdimuUAB,47620,4784,Delivered,2006-10-24,,Complete
