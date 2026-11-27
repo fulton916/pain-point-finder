@@ -35,6 +35,7 @@ import requests
 import collect_appstore
 import collect_bluesky
 import collect_gh
+import collect_gh_discussions
 import collect_hn
 import collect_reddit
 import collect_se
@@ -56,9 +57,11 @@ SOURCES = {
     "bs": collect_bluesky,
     "yt": collect_youtube,
     "as": collect_appstore,
+    "gd": collect_gh_discussions,
 }
 ALIASES = {"hackernews": "hn", "github": "gh", "ideaexchange": "ie", "stackexchange": "se", "reddit": "rd",
-           "bluesky": "bs", "youtube": "yt", "appstore": "as"}
+           "bluesky": "bs", "youtube": "yt", "appstore": "as", "discussions": "gd",
+           "github_discussions": "gd"}
 # What a score counts, per source, for the printed line.
 UNITS = {
     "hackernews": "points",
@@ -69,6 +72,7 @@ UNITS = {
     "bluesky": "likes",
     "youtube": "likes",
     "appstore": "helpful votes",
+    "github_discussions": "upvotes",
 }
 # What the comments field counts when it is not comments (Stack Exchange stores answer_count there;
 # Bluesky stores replyCount; YouTube stores totalReplyCount).
@@ -509,8 +513,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("search", help="ask one question across the sources")
     s.add_argument("query", help="the words to search for")
-    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, yt, as, ie (default from config.yaml). as = App Store customer "
-                   "reviews (keyless; the iTunes Search API allows about 20 calls a minute, checked 2026-11-26)")
+    s.add_argument("--sources", help="comma list: hn, gh, se, rd, bs, yt, as, gd, ie (default from config.yaml). as = App Store customer "
+                   "reviews (keyless; the iTunes Search API allows about 20 calls a minute, checked 2026-11-26). gd = GitHub "
+                   "Discussions through the GraphQL API (needs GITHUB_TOKEN; a budget of 5,000 points an hour, one per page, "
+                   "checked 2026-11-27); add it for developer tools and open-source projects")
     s.add_argument("--since", help="24m, 30d, 8w, 2y or YYYY-MM-DD (default from config.yaml)")
     s.add_argument("--format", choices=["md", "json", "compact"], default="md",
                    help="md: readable markdown with a snippet per row; json: for programs; compact: one line per row "
@@ -519,7 +525,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--refresh", action="store_true", help="ignore the cache and fetch again")
     s.add_argument("--trend", action="store_true", help="add one header line per source with its record count per "
                    "half-year inside the window (2024H2 12, 2025H1 31, ...); meta.trend in JSON")
-    s.add_argument("--repos", help="GitHub only: comma list of owner/name to search instead of all of GitHub")
+    s.add_argument("--repos", help="GitHub issues and Discussions only: comma list of owner/name to search instead of all of GitHub")
     title = s.add_mutually_exclusive_group()
     title.add_argument("--title-only", action="store_true", help="Hacker News: match the title only (config default)")
     title.add_argument("--no-title-only", action="store_true", help="Hacker News: match title and text")

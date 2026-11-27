@@ -9,7 +9,9 @@ search:
   # Arctic Shift archive; not in the default list because its scores are stale), bs (Bluesky; not in the
   # default list because likes measure a post's spread, not a problem's size), yt (YouTube comments; needs
   # a key and spends a daily quota, so not in the default list), as (App Store customer reviews; not in
-  # the default list because one app's reviews describe one product), ie (IdeaExchange CSV, local).
+  # the default list because one app's reviews describe one product), gd (GitHub Discussions through the
+  # GraphQL API; not in the default list until a live run shows it is useful: upvotes run low and most
+  # projects keep their Discussions off), ie (IdeaExchange CSV, local).
   default_sources: [hn, gh, se]
   # How far back: 24m = 24 months, 30d, 8w, 2y, or a YYYY-MM-DD date.
   default_since: 24m
@@ -93,6 +95,29 @@ github:
   # Where the words must appear: title (default), or "title,body". Without this GitHub also
   # matches comments, which returned unrelated repos in the first live run (2026-11-24).
   search_in: title
+
+github_discussions:
+  # GitHub Discussions through the GraphQL API, search(type: DISCUSSION), upvotes as the score (issue #33).
+  # Needs GITHUB_TOKEN (the GraphQL API refuses anonymous calls); without it the source is skipped and the
+  # header says so. Rate limit read 2026-11-27 from docs.github.com/graphql/overview/rate-limits-and-node-
+  # limits-for-the-graphql-api: 5,000 points an hour per token, its own budget apart from the REST one;
+  # a search page costs 1 point and every answer's rateLimit field says what is left (logged).
+  endpoint: https://api.github.com/graphql
+  # Discussions per page (GraphQL allows 1 to 100) and pages per question. Each page is one POST.
+  per_page: 100
+  max_pages: 3
+  # Seconds between pages.
+  delay_seconds: 1.0
+  # Tries per page: connection errors, 5xx, 403/429 and RATE_LIMITED answers are retried with a pause.
+  max_tries: 6
+  # Where the words must appear: title (default), or "title,body".
+  search_in: title
+  # Repos to search when --repos is not given. Empty list = all of GitHub.
+  search_repos: []
+  # Keep discussions with at least this many upvotes. 0 keeps every title match.
+  search_min_upvotes: 0
+  # How many characters of the discussion body to keep.
+  body_max_chars: 2000
 
 stackexchange:
   # API v2.3 advanced search. Terms pasted and cleared 2026-11-25: attribution required (CC BY-SA),
@@ -400,6 +425,10 @@ scoring:
     - ideaexchange
   source_thresholds:
     github:        {moderate: 5,   strong: 20}    # reactions
+    github_discussions: {moderate: 5, strong: 20} # upvotes (issue #33). Checked 2026-11-27 with in:title over 24 months:
+                                                  # "bulk api" gave 45 discussions, top upvotes 10, 7, 7, then 2 and under;
+                                                  # "dark mode" gave 968, top 43, 7, 7, 6; "jsforce" gave 2 (2 and 1 upvotes).
+                                                  # Kept at the issues figures: 5 is a handful of people, 20 is rare.
     hackernews:    {moderate: 50,  strong: 150}   # points
     stackexchange: {moderate: 3,   strong: 8}     # question score (votes). Checked 2026-11-25: the top 100
                                                   # salesforce.stackexchange.com questions of the last 24 months scored 2 to 9.
