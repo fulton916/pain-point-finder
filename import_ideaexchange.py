@@ -56,12 +56,17 @@ def search(session, cfg: dict, query: str, since, **options) -> list[dict]:
 
     A query word equal to the config `topic` (Salesforce) is skipped: every idea in the CSV is about
     the topic, and its titles never repeat the word, so "salesforce reports" means "reports" here."""
-    if options.get("info") is not None:
-        options["info"].append(NOT_DATE_FILTERED)
     path = ROOT / cfg["paths"]["raw_dir"] / "ideaexchange.jsonl"
     if not path.exists():
-        log.warning("ideaexchange: %s not found; run import_ideaexchange.py first", path)
+        # Part of the answer is missing, so the header says so (`notes`, like a missing YouTube key)
+        # and ppf.py does not cache the empty result.
+        why = f"ideaexchange skipped: {path.name} not found; run import_ideaexchange.py first."
+        log.warning("%s", why)
+        if options.get("notes") is not None:
+            options["notes"].append(why)
         return []
+    if options.get("info") is not None:
+        options["info"].append(NOT_DATE_FILTERED)
     topic = str(cfg.get("topic") or "").strip().lower()
     words = [w for w in query.lower().split() if w and w != topic]
     if topic and len(words) < len(query.split()):

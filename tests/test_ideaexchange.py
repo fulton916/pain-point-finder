@@ -63,11 +63,13 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(ie.search(None, self.cfg, "reports attachments", SINCE_2024)[0]["score"], 9376)
         self.assertEqual(ie.search(None, self.cfg, "reports nowhere", SINCE_2024), [])
 
-    def test_missing_file_returns_nothing_but_still_says_why(self):
+    def test_missing_file_returns_nothing_and_says_why_in_notes_not_info(self):
         info: list[str] = []
+        notes: list[str] = []
         cfg = {"paths": {"raw_dir": str(Path(self.tmp.name) / "none")}, "topic": "Salesforce"}
-        self.assertEqual(ie.search(None, cfg, "reports", SINCE_2024, info=info), [])
-        self.assertEqual(len(info), 1)
+        self.assertEqual(ie.search(None, cfg, "reports", SINCE_2024, info=info, notes=notes), [])
+        self.assertEqual(info, [])
+        self.assertEqual(notes, ["ideaexchange skipped: ideaexchange.jsonl not found; run import_ideaexchange.py first."])
 
 
 class SubstatusTests(unittest.TestCase):
